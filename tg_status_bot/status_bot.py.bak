@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""任何原因停止发送都必须上报（标记文件 + 日志双检测）"""
+import json, time, os, re, urllib.request, urllib.parse, subprocess
+from pathlib import Path
+from datetime import datetime
+
+CONFIG = json.loads(Path("/root/tg_status_bot/config.json").read_text())
+BOT_TOKEN = CONFIG["bot_token"]
+CHAT_ID = str(CONFIG["chat_id"])
+CHECK_INTERVAL = 10
+
+PANELS = {
+    "a": {
+        "title": "面板A (3号) a.tg34.pw",
+        "flag": "/tmp/tg_panel_a_sending",
+        "done": "/tmp/tg_panel_a_sending.done",
+        "data": "/root/tg_share_panel_a/data",
+        "log": "/tmp/panel_a.log",
+        "svc": "tg-panel-a",
+    },
+    "b": {
+        "title": "面板B (4号) b.tg34.pw",
+        "flag": "/tmp/tg_panel_b_sending",
+        "done": "/tmp/tg_panel_b_sending.done",
+        "data": "/root/tg_share_panel_b/data",
+        "log": "/tmp/panel_b.log",
+        "svc": "tg-panel-b",
+    },
+}
+
+state = {
+    k: {
+        "sending": os.path.exists(v["flag"]),
+        "last_log_pos": 0,
+        "notified_line": "",
+    }
+    for k, v in PANELS.items()
+}
+
+def send(text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    data = urllib.parse.urlencode({
+        "chat_id": CHAT_ID, "text": text, "parse_mode": "HTML"
+    }).encode()
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=15) as r:
+            return r.status == 200
+    except Exception as e:
+        print("发送失败:", e)
+        return False
+
+def summary(data_dir):
+    lines = []
+    try:
+        workers = json.loads(Path(f"{data_dir}/workers_config.json").read_text()).get("workers", [])
+        targets = json.loads(Path(f"{data_dir}/targets.json").read_text()).get("targets", [])
+        pending = sum(1 for t in targets if t.get("status") == "pending")
+        sent = sum(1 for t in targets if t.get("status") == "sent")
+        failed = sum(1 for t in targets if t.get("status") == "failed")
+        lines.append(f"水军: {len(workers)} | 待发 {pending} | 已发 {sent} | 失败 {failed}")
+    except Exception:
+        lines.append("数据读取失败")
+    try:
+        stats = json.loads(Path(f"{data_dir}/stats.json").read_text())
+        lines.append(f"今日: {stats.get('today_sends', 0)} | 累计: {stats.get('total_sends', 0)}")
+    except Exception:
+        pass
+    return "\n".join(lines)
+
+def notify(title, data_dir, reason, extra=""):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    msg = (
+        f"⏹ <b>发送已停止</b>\n"
+        f"原因: {reason}\n"
+        f"时间: {now}\n\n"
+        f"<b>{title}</b>\n{summary(data_dir)}"
+    )
+    if extra:
+        msg += f"\n{extra}"
+    ok = send(msg)
+    print(now, title, reason, "OK" if ok else "FAIL")
+    return ok
+
+def scan_log_for_stop(log_path, last_pos):
+    """从日志增量扫描完成/异常退出"""
+    try:
+        p = Path(log_path)
+        if not p.exists():
+            return last_pos, []
+        data = p.read_bytes()
+        if last_pos > len(data):
+            last_pos = 0
+        chunk = data[last_pos:].decode("utf-8", errors="ignore")
+        new_pos = len(data)
+        events = []
+        for line in chunk.splitlines():
+            if "发送调度器完成" in line:
+                events.append(("调度完成", line[-120:]))
+            elif "发送调度器异常退出" in line:
+                events.append(("调度异常退出", line[-120:]))
+        return new_pos, events
+    except Exception as e:
+        print("扫日志失败:", e)
+        return last_pos, []
+
+def svc_active(name):
+    try:
+        return subprocess.run(
+            ["systemctl", "is-active", name],
+            capture_output=True, text=True
+        ).stdout.strip() == "active"
+    except Exception:
+        return True
+
+def main():
+    print("监控启动：标记文件 + 日志双检测，任何停止都上报")
+    for k, p in PANELS.items():
+        try:
+            state[k]["last_log_pos"] = Path(p["log"]).stat().st_size if Path(p["log"]).exists() else 0
+        except Exception:
+            state[k]["last_log_pos"] = 0
+        state[k]["sending"] = os.path.exists(p["flag"])
+    print("初始:", {k: state[k]["sending"] for k in state})
+
+    while True:
+        time.sleep(CHECK_INTERVAL)
+        for k, p in PANELS.items():
+            try:
+                sending = os.path.exists(p["flag"])
+                done = os.path.exists(p["done"])
+                ok = svc_active(p["svc"])
+
+                # A) .done 文件
+                if done:
+                    try:
+                        extra = open(p["done"]).read().strip()
+                    except Exception:
+                        extra = ""
+                    reason = "调度完成或异常结束"
+                    if str(extra).startswith("error:"):
+                        reason = "调度异常退出"
+                    notify(p["title"], p["data"], reason, f"详情: {extra}" if extra else "")
+                    try:
+                        os.remove(p["done"])
+                    except Exception:
+                        pass
+                    state[k]["sending"] = False
+                    continue
+
+                # B) 日志：完成 / 异常
+                new_pos, events = scan_log_for_stop(p["log"], state[k]["last_log_pos"])
+                state[k]["last_log_pos"] = new_pos
+                for reason, line in events:
+                    if line != state[k].get("notified_line"):
+                        notify(p["title"], p["data"], reason, line[:150])
+                        state[k]["notified_line"] = line
+                        state[k]["sending"] = False
+                        try:
+                            if os.path.exists(p["flag"]):
+                                os.remove(p["flag"])
+                        except Exception:
+                            pass
+
+                # C) 标记有→无（手动停止）
+                if state[k]["sending"] and not sending:
+                    notify(p["title"], p["data"], "手动停止或标记被清除")
+                    state[k]["sending"] = False
+
+                # D) 服务挂了
+                elif state[k]["sending"] and not ok:
+                    notify(p["title"], p["data"], "面板服务异常退出")
+                    state[k]["sending"] = False
+                    try:
+                        if os.path.exists(p["flag"]):
+                            os.remove(p["flag"])
+                    except Exception:
+                        pass
+                else:
+                    # 若有 flag 认为在发送；若日志刚出现「调度器启动」也标为发送中
+                    if sending:
+                        state[k]["sending"] = True
+                    # 扫到启动行则标记为发送中（补 flag 缺失）
+                    try:
+                        log_tail = Path(p["log"]).read_text(errors="ignore")[-2000:]
+                        if "发送调度器启动" in log_tail and not sending:
+                            # 补写 flag，便于后续停止检测
+                            try:
+                                open(p["flag"], "w").write("1")
+                            except Exception:
+                                pass
+                            state[k]["sending"] = True
+                    except Exception:
+                        pass
+
+            except Exception as e:
+                print("检查异常", k, e)
+
+if __name__ == "__main__":
+    main()
