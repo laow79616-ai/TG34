@@ -1960,6 +1960,15 @@ async def _run_send_scheduler_inner():
                 truly_blocked = bool(wc.get("is_restricted") or wc.get("is_dead") or wc.get("is_frozen") or int(wc.get("rate_limit_count") or 0) >= 10)
                 if truly_blocked or still_cooling:
                     continue
+                # 跳过ban了组内全部Bot的水军
+                try:
+                    import json as _j
+                    _restr = _j.load(open("data/restrictions.json"))
+                    _banned = sum(1 for v in _restr.get("records",{}).values() if v.get("banned") and v.get("worker_phone") == wc.get("phone"))
+                    if _banned >= 5:
+                        continue
+                except:
+                    pass
                 # 冷却已结束，清除过期标记（内存侧）
                 if wc.get("marked_restricted_or_cooldown") and not still_cooling and not truly_blocked:
                     wc["marked_restricted_or_cooldown"] = False
