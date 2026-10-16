@@ -124,9 +124,9 @@ _stall_alerted_after_restart = False
 _worker_low_notified_at = 0  # 水军不足上报时间戳，防刷
 reconnect_task = None  # 后台自动重连任务
 # 工作流活动日志
-activity_log = []  # 最近50条活动记录
+activity_log = []  # 最近100条活动记录
 current_activity = {}  # 当前正在进行的操作
-MAX_ACTIVITY_LOG = 50
+MAX_ACTIVITY_LOG = 100
 
 async def check_workers_running_low(worker_configs, interval_min=120):
     """可用水军是否会在约5小时内不够用；是则上报（5小时内最多一次）"""
@@ -1600,7 +1600,7 @@ async def api_send_activity(request):
     """获取完整活动日志"""
     return web.json_response({
         "current": current_activity,
-        "logs": activity_log[-50:],
+        "logs": activity_log[-100:],
         "connected_workers": [(wid, workers[wid].phone if hasattr(workers[wid], 'phone') else wid) for wid, w in workers.items() if w._connected]
     })
 
