@@ -654,13 +654,13 @@ class ShareWorker:
                         random_id=int(time.time() * 1000000)
                     ))
                 except QueryIdInvalidError:
-                    return False, "query已过期，请重试", False
+                    self._log_step(6, "发送失败: query过期"); return False, "query已过期，请重试", False
                 except Exception as e:
                     err_str = str(e)
                     if "banned" in err_str.lower() or "restricted" in err_str.lower() or "forbidden" in err_str.lower():
                         bot_restricted = True
-                        return False, f"Bot @{bot_username_to_use} 分享被限制: {e}", True
-                    return False, f"发送失败: {e}", False
+                        self._log_step(6, "发送失败: Bot限制"); return False, f"Bot @{bot_username_to_use} 分享被限制: {e}", True
+                    self._log_step(6, "发送失败"); return False, f"发送失败: {e}", False
 
                 logger.info(f"[Worker-{self.worker_id}] ✅ 通过inline分享成功")
                 self._log_step(6, "验证结果", getattr(target_user, "username", ""))
@@ -672,14 +672,14 @@ class ShareWorker:
                 except Exception as e:
                     err_str = str(e)
                     if "banned" in err_str.lower() or "restricted" in err_str.lower():
-                        return False, f"转发被限制: {e}", False
+                        self._log_step(6, "发送失败: 转发限制"); return False, f"转发被限制: {e}", False
                     if "too many" in err_str.lower() or "flood" in err_str.lower():
                         logger.warning(f"[Worker-{self.worker_id}] 转发频率限制: {e}")
                         self.enter_cooldown(3600)
-                        return False, "转发失败: 请求过多", False
+                        self._log_step(6, "发送失败: 频率限制"); return False, "转发失败: 请求过多", False
                     if "blocked" in err_str.lower():
-                        return False, "You blocked this user", False
-                    return False, f"转发失败: {e}", False
+                        self._log_step(6, "发送失败: 被屏蔽"); return False, "You blocked this user", False
+                    self._log_step(6, "发送失败"); return False, f"转发失败: {e}", False
                 self._log_step(5, "确认用户并点击发送")
             # === Step 4: 验证发送 - 检查消息是否出现在目标用户聊天中 ===
             await asyncio.sleep(1); await asyncio.sleep(__import__("random").randint(1,5))  # 步骤间延迟
@@ -717,7 +717,7 @@ class ShareWorker:
                     logger.warning(f"[Worker-{self.worker_id}] ⚠️ 连续{cnt}次未送达，水军暂停1小时")
                     self.enter_cooldown(3600)
                     self._consecutive_undelivered = 0
-                    return False, f"连续{cnt}次未送达(水军暂停)", bot_restricted
+                    self._log_step(6, "发送失败: 未送达"); return False, f"连续{cnt}次未送达(水军暂停)", bot_restricted
                 else:
                     # 单次未送达 → 不冷却，继续下一个目标
                     logger.info(f"[Worker-{self.worker_id}] ⚠️ 消息可能未送达(第{self._consecutive_undelivered}次)，继续发送")
