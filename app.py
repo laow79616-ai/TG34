@@ -2207,16 +2207,16 @@ async def _run_send_scheduler_inner():
 
         # 发送间隔（标准方案：成功后休息 5-10 秒，强制换组换号）
         if send_success:
-            wait_time = random.randint(5, 10)  # 成功后休息5-10秒
+            MIN_COOLDOWN = 300  # 最少5分钟
             current_activity = {"status": "等待中", "worker": wconfig_send['phone'] if wconfig_send else "", "target": target['username'], "step": f"发送成功，进入冷却池5分钟"}
             log_activity("发送成功", f"成功发送给 @{target['username']}，进入冷却池5分钟", worker_phone=wconfig_send['phone'] if wconfig_send else "", target=target['username'], status="success")
-            logger.info(f"[调度] ✅ 发送成功，休息 {wait_time} 秒后换组换号继续...")
+            logger.info(f"[调度] ✅ 发送成功，休息 5 分钟后换组换号继续...")
             try:
                 if send_worker:
                     if hasattr(send_worker, "rest_after_success"):
-                        send_worker.rest_after_success(wait_time)
+                        send_worker.rest_after_success(MIN_COOLDOWN)
                     else:
-                        send_worker.cooldown_until = time.time() + wait_time
+                        send_worker.cooldown_until = time.time() + MIN_COOLDOWN
                         send_worker.needs_disconnect = True
                         send_worker.status = "cooldown"
                     logger.info(f"[轮换] {send_worker.phone} 进入冷却池5分钟")
@@ -2234,7 +2234,7 @@ async def _run_send_scheduler_inner():
         else:
             # 失败也冷却5分钟
             if send_worker:
-                send_worker.cooldown_until = time.time() + random.randint(5, 10)
+                send_worker.cooldown_until = max(getattr(send_worker, "cooldown_until", 0) or 0, time.time() + 300)
                 send_worker.status = "cooldown"
                 logger.info(f"[轮换] {send_worker.phone} 失败后进入冷却池5分钟")
             await asyncio.sleep(5)
