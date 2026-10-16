@@ -75,6 +75,23 @@ logging.getLogger("telethon.network.mtprotosender").setLevel(logging.WARNING)
 # ============ 全局状态 ============
 workers = {}  # worker_id -> ShareWorker
 
+def _mark_rate_limit_10():
+    """启动时检查并标记限流≥10的水军"""
+    try:
+        data = load_json(WORKERS_CONFIG_FILE)
+        workers = data.get("workers", [])
+        marked = 0
+        for w in workers:
+            if int(w.get("rate_limit_count") or 0) >= 10:
+                w["is_restricted"] = True
+                w["restricted_reason"] = f"限流达到{w.get('rate_limit_count')}次，标记删除"
+                marked += 1
+        if marked > 0:
+            save_json(WORKERS_CONFIG_FILE, {"workers": workers})
+            logger.info(f"[启动检查] 标记了 {marked} 个限流≥10的水军")
+    except Exception as e:
+        logger.warning(f"[启动检查] 标记失败: {e}")
+
 def _persist_worker_rate_limit(worker_id, rate_limit_count, has_been_banned_24h, is_restricted):
     """持久化水军的限制次数到配置文件"""
     try:
@@ -2580,5 +2597,6 @@ def create_app():
 
 
 if __name__ == "__main__":
+    _mark_rate_limit_10()
     app = create_app()
     web.run_app(app, host="0.0.0.0", port=8001)
