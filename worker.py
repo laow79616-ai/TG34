@@ -787,7 +787,7 @@ class ShareWorker:
 
         # Step 1: 搜索并确认目标用户
         logger.info(f"[Worker-{self.worker_id}] 步骤2: 检查目标用户 @{target_username}")
-        self._log_step(5, "搜索指定用户", target_username)
+        self._log_step(2, "检查目标用户", target_username)
         user, matched = await self.search_user(target_username)
 
         if not user:
