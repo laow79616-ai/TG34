@@ -543,7 +543,7 @@ class ShareWorker:
                 if len(valid_usernames) >= 5:
                     break
             # 推进全局索引（每次调用都推进，确保下次用不同Bot）
-            ShareWorker._global_bot_index += 1
+            ShareWorker._global_bot_index = (ShareWorker._global_bot_index + 1) % max(len(all_bots), 1)
             if not valid_usernames:
                 return False, f"所有Bot都被当前水军号banned，无可用Bot", False
             for uname in valid_usernames:
@@ -558,6 +558,7 @@ class ShareWorker:
                 return False, f"无法连接任何Bot: {', '.join(valid_usernames[:5])}", False
 
             self.current_bot_username = bot_username_to_use
+            logger.info(f"[Bot轮换] 使用 @{bot_username_to_use} (索引{ShareWorker._global_bot_index})")
 
             # === Step 1: 发送 /start ===
             await self.client.send_message(bot_entity, "/start")
