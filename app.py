@@ -2351,14 +2351,14 @@ async def hourly_purge_frozen():
                 rr = str(getattr(w, "restricted_reason", "") or "")
                 blob = (le + " " + rr).lower()
                 rate_count = getattr(w, "rate_limit_count", 0) or 0
-                if getattr(w, "is_frozen", False) or getattr(w, "is_dead", False) or "frozen" in blob or "冻结" in le or "方法不可用" in le or rate_count >= 10:
+                if getattr(w, "is_frozen", False) or getattr(w, "is_dead", False) or getattr(w, "is_restricted", False) or "frozen" in blob or "冻结" in le or "方法不可用" in le or rate_count >= 10 or "限制达到10次" in rr:
                     phones.add(getattr(w, "phone", ""))
             data = load_json(WORKERS_CONFIG_FILE)
             for wc in data.get("workers", []):
                 le = str(wc.get("last_error") or "")
                 rr = str(wc.get("restricted_reason") or "")
                 rate_count = wc.get("rate_limit_count", 0) or 0
-                if wc.get("is_frozen") or wc.get("is_dead") or "frozen" in le.lower() or "冻结" in le or "冻结" in rr or rate_count >= 10:
+                if wc.get("is_frozen") or wc.get("is_dead") or wc.get("is_restricted") or "frozen" in le.lower() or "冻结" in le or "冻结" in rr or rate_count >= 10 or "限制达到10次" in rr:
                     phones.add(wc.get("phone"))
             phones.discard("")
             phones.discard(None)
