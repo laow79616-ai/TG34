@@ -1592,7 +1592,7 @@ async def api_send_status(request):
         "today_sends": stats.get("today_sends", 0),
         "total_sends": stats.get("total_sends", 0),
         "current_activity": current_activity,
-        "recent_logs": activity_log[-20:]  # 最近20条
+        "recent_logs": activity_log[-100:]  # 最近20条
     })
 
 @routes.get("/api/send/activity")
