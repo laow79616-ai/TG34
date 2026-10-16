@@ -757,6 +757,9 @@ class ShareWorker:
                     self._on_dead_detected(self.worker_id, self.phone, str(e))
                 return False, f"账号已死: {e}", bot_restricted
             # 检查是否是限制相关的错误
+            if "too many" in err_msg.lower():
+                self.enter_cooldown(300)
+                return False, f"Too many requests: 限流+1", bot_restricted
             if "banned" in err_msg.lower() or "restricted" in err_msg.lower() or "spam" in err_msg.lower():
                 self.mark_restricted(f"被限制: {e}")
             logger.error(f"[Worker-{self.worker_id}] 分享出错: {e}")
