@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>飞机分析V3号机</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1923; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; color: #4fc3f7; margin-bottom: 20px; font-size: 24px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 14px; }
+        .tab:hover { background: #2a3a4a; }
+        .tab.active { background: #1565c0; border-color: #1976d2; color: white; }
+        .panel { display: none; background: #1a2a3a; border-radius: 12px; padding: 20px; border: 1px solid #2a3a4a; }
+        .panel.active { display: block; }
+        .card { background: #0f1923; border: 1px solid #2a3a4a; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .card-title { color: #4fc3f7; font-weight: bold; margin-bottom: 8px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #1a2a3a; border: 1px solid #2a3a4a; border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #4fc3f7; }
+        .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; background: #0f1923; border: 1px solid #2a3a4a; border-radius: 6px; color: #e0e0e0; font-size: 14px; margin-bottom: 10px; }
+        input:focus, textarea:focus { border-color: #1976d2; outline: none; }
+        textarea { min-height: 100px; resize: vertical; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+        .btn-primary { background: #1565c0; color: white; }
+        .btn-primary:hover { background: #1976d2; }
+        .btn-danger { background: #c62828; color: white; }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-success { background: #2e7d32; color: white; }
+        .btn-success:hover { background: #388e3c; }
+        .btn-warning { background: #f57f17; color: white; }
+        .btn-warning:hover { background: #f9a825; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        .flex { display: flex; gap: 10px; align-items: center; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .mb-10 { margin-bottom: 10px; }
+        .mb-20 { margin-bottom: 20px; }
+        .text-green { color: #4caf50; }
+        .text-red { color: #f44336; }
+        .text-yellow { color: #ffc107; }
+        .text-gray { color: #888; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .badge-green { background: #1b5e20; color: #4caf50; }
+        .badge-orange { background: #7f4700; color: #f39c12; }
+        .badge-red { background: #4a1515; color: #f44336; }
+        .badge-yellow { background: #4a3f15; color: #ffc107; }
+        .badge-blue { background: #0d47a1; color: #64b5f6; }
+
+        /* GROUP_LAYOUT_V1 */
+        .group-wrap{display:flex;gap:14px;align-items:stretch;min-height:520px}
+        .group-left{width:260px;min-width:240px;background:#0a1520;border:1px solid #2a3a4a;border-radius:10px;padding:10px;overflow-y:auto;max-height:70vh}
+        .group-right{flex:1;min-width:0;background:#0a1520;border:1px solid #2a3a4a;border-radius:10px;padding:12px;overflow-y:auto;max-height:70vh}
+        .group-item{padding:10px 12px;border:1px solid #2a3a4a;border-radius:8px;margin-bottom:8px;cursor:pointer;background:#1a2a3a}
+        .group-item:hover{border-color:#1976d2}
+        .group-item.active{background:#1565c0;border-color:#4fc3f7}
+        .group-item .g-title{font-size:13px;font-weight:600}
+        .group-item .g-sub{font-size:11px;color:#90a4ae;margin-top:4px}
+        .slot-empty{padding:10px;border:1px dashed #2a3a4a;border-radius:8px;color:#667;font-size:12px;margin-bottom:8px}
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2a3a4a; }
+        th { color: #4fc3f7; font-size: 12px; text-transform: uppercase; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #aaa; font-size: 13px; }
+        .section-title { color: #4fc3f7; font-size: 16px; font-weight: bold; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #2a3a4a; }
+        .log-area { background: #0a0f14; border: 1px solid #2a3a4a; border-radius: 6px; padding: 12px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; line-height: 1.6; }
+        .log-entry { padding: 2px 0; }
+        .log-success { color: #4caf50; }
+        .log-error { color: #f44336; }
+        .log-info { color: #64b5f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>飞机分析V3号机<button onclick="logout()" style="float:right; font-size:13px; padding:6px 14px; border:1px solid #37474f; border-radius:6px; background:#263238; color:#90a4ae; cursor:pointer;">退出登录</button>
+        </h1>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('dashboard')">仪表盘</div>
+            <div class="tab" onclick="switchTab('workers')">水军管理</div>
+            <div class="tab" onclick="switchTab('targets')">目标用户</div>
+            <div class="tab" onclick="switchTab('ads')">广告管理</div>
+            <div class="tab" onclick="switchTab('proxies')">IP代理池</div>
+            <div class="tab" onclick="switchTab('bots')">Bot管理</div>
+            <div class="tab" onclick="switchTab('config')">系统设置</div>
+            <div class="tab" onclick="switchTab('batch-import')" style="background:#1b5e20;border-color:#2e7d32;">批量导入</div>
+            <div class="tab" onclick="switchTab('api-config')">API管理</div>
+            <div class="tab" onclick="switchTab('avatars')">头像库</div>
+        </div>
+
+        <!-- 仪表盘 -->
+        <div class="panel active" id="panel-dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-memory">-</div>
+                    <div class="stat-label">内存使用</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-cpu">-</div>
+                    <div class="stat-label">CPU使用</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-workers">0/0</div>
+                    <div class="stat-label">在线水军/总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-today">0</div>
+                    <div class="stat-label">今日发送</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-total">0</div>
+                    <div class="stat-label">总计发送</div>
+                </div>
+            </div>
+
+            <div class="flex-between mb-20">
+                <div class="section-title">发送控制</div>
+                <div class="flex">
+                    <button class="btn btn-success" onclick="startSend()">▶ 开始发送</button>
+                    <button class="btn btn-danger" onclick="stopSend()">⏹ 停止发送</button>
+                </div>
+            </div>
+            <div id="send-status" class="card" style="margin-bottom:10px;">
+                <span class="text-gray">状态：</span>
+                <span id="send-status-text">未运行</span>
+            </div>
+            <!-- 工作流实时显示 -->
+            <div id="workflow-panel" class="card" style="max-height:400px;overflow-y:auto;">
+                <div class="flex-between mb-10">
+                    <span style="color:#4fc3f7;font-weight:bold;">📋 工作流实时日志</span>
+                    <span id="workflow-current" style="color:#aaa;font-size:12px;"></span>
+                </div>
+                <div id="workflow-current-activity" style="background:#1a2332;padding:10px;border-radius:6px;margin-bottom:10px;display:none;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="spinner" style="width:14px;height:14px;border:2px solid #4fc3f7;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;"></span>
+                        <span id="workflow-step" style="color:#fff;font-size:13px;"></span>
+                    </div>
+                    <div style="margin-top:6px;font-size:12px;color:#aaa;">
+                        <span>水军：<span id="workflow-worker" style="color:#66bb6a;"></span></span>
+                        <span style="margin-left:15px;">目标：<span id="workflow-target" style="color:#ffa726;"></span></span>
+                    </div>
+                </div>
+                <div id="workflow-logs" style="font-size:12px;line-height:1.8;"></div>
+            </div>
+            <style>
+                @keyframes spin { to { transform: rotate(360deg); } }
+                .log-success { color: #66bb6a; }
+                .log-warning { color: #ffa726; }
+                .log-error { color: #ef5350; }
+                .log-info { color: #90a4ae; }
+                .log-entry { padding: 2px 0; border-bottom: 1px solid #1a2332; }
+            </style>
+        </div>
+
+        <!-- 水军管理 -->
+        <div class="panel" id="panel-workers">
+            <div class="flex-between mb-20">
+                <div class="section-title">水军管理</div>
+                <div class="flex">
+                    <button class="btn btn-success" onclick="connectAllWorkers()">一键全部连接</button>
+                    <button class="btn" style="background:#9c27b0;color:#fff;" onclick="clearAllRestrictions()">清除所有限制</button>
+                    <button class="btn btn-primary" onclick="showAddWorker()">+ 添加水军</button>
+                </div>
+            </div>
+            <div id="add-worker-form" style="display:none" class="card mb-20">
+                <div class="form-group">
+                    <label>选择 IP 线路（必选，每组最多10个）</label>
+                    <select id="worker-proxy-select"><option value="">-- 请先选择 IP 线路 --</option></select>
+                </div>
+                <div class="form-group">
+                    <label>手机号（含国际区号）</label>
+                    <input type="text" id="worker-phone" placeholder="+60123456789">
+                </div>
+                <div class="form-group">
+                    <label>Bot 对接</label>
+                    <div class="text-gray" style="font-size:13px;line-height:1.6">不手动选 Bot。本线路（组）自动对接同序号 Bot 组：线路1↔Bot组1 … 线路30↔Bot组30。</div>
+                </div>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="addWorker()">添加</button>
+                    <button class="btn" onclick="hideAddWorker()">取消</button>
+                </div>
+            </div>
+            <div id="batch-assign-bot-form" style="display:none" class="card mb-20">
+                <div class="form-group"><label>选择Bot（可多选）</label>
+                    <div id="assign-bot-checkboxes" style="max-height:200px;overflow-y:auto;border:1px solid #2a3a4a;padding:10px;border-radius:6px;"></div>
+                </div>
+                <div class="form-group"><label>选择水军（勾选要分配的）</label>
+                    <div id="assign-worker-checkboxes" style="max-height:200px;overflow-y:auto;border:1px solid #2a3a4a;padding:10px;border-radius:6px;"></div>
+                </div>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="doBatchAssignBot()">确认分配</button>
+                    <button class="btn" onclick="hideBatchAssignBot()">取消</button>
+                </div>
+            </div>
+            <div id="workers-stats"></div>
+            <div class="group-wrap">
+                <div class="group-left" id="worker-group-list"></div>
+                <div class="group-right" id="workers-list"></div>
+            </div>
+        </div>
+        <!-- 目标用户 -->
+        <div class="panel" id="panel-targets">
+            <div class="flex-between mb-20">
+                <div class="section-title">目标用户</div>
+                <button class="btn btn-danger" onclick="deleteAllTargets()" style="padding:8px 16px;font-size:13px;">🗑 一键删除所有用户</button>
+            </div>
+            <div style="display:flex;gap:30px;padding:12px 20px;background:rgba(0,150,255,0.1);border:1px solid rgba(0,150,255,0.3);border-radius:8px;margin-bottom:16px;font-size:14px;color:#8899aa;">
+                总计: <b id="targets-total" style="color:#fff">0</b> 个 &nbsp;&nbsp; 未分享: <b id="targets-pending" style="color:#f0ad4e">0</b> 个 &nbsp;&nbsp; 已发送: <b id="targets-sent" style="color:#5cb85c">0</b> 个 &nbsp;&nbsp; 失败: <b id="targets-failed" style="color:#d9534f">0</b> 个
+            </div>
+            <div class="card mb-20">
+                <div class="form-group">
+                    <label>批量添加用户名（每行一个，可带@）</label>
+                    <textarea id="targets-input" placeholder="@username1&#10;@username2&#10;username3"></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="addTargets()">批量添加</button>
+            </div>
+            <table>
+                <thead><tr><th>用户名</th><th>状态</th><th>Bot</th><th>发送时间</th><th>结果</th><th>操作</th></tr></thead>
+                <tbody id="targets-list"></tbody>
+            </table>
+        </div>
+
+        <!-- 广告管理 -->
+        <div class="panel" id="panel-ads">
+            <div class="flex-between mb-20">
+                <div class="section-title">广告管理</div>
+                <button class="btn btn-primary" onclick="showAddAd()">+ 添加广告</button>
+            </div>
+
+            <div id="add-ad-form" style="display:none" class="card mb-20">
+                <div class="form-group">
+                    <label>广告名称</label>
+                    <input type="text" id="ad-name" placeholder="广告1">
+                </div>
+                <div class="form-group">
+                    <label>广告文案（支持HTML格式）</label>
+                    <textarea id="ad-message" placeholder="大哥，您的私人休闲管家！"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>图片URL（可选）</label>
+                    <input type="text" id="ad-image-url" placeholder="https://example.com/ad.jpg">
+                </div>
+                <div class="form-group">
+                    <label>图片File ID（可选，优先使用）</label>
+                    <input type="text" id="ad-image-file-id" placeholder="AgACAgIAAxkB...">
+                </div>
+                <div class="form-group">
+                    <label>URL按钮（JSON格式）</label>
+                    <textarea id="ad-buttons" placeholder='[{"text": "官网", "url": "https://kuaiyue.vip"}]'></textarea>
+                </div>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="addAd()">添加广告</button>
+                    <button class="btn" onclick="hideAddAd()">取消</button>
+                </div>
+            </div>
+
+            <div id="ads-list"></div>
+        </div>
+
+        <!-- IP代理池 -->
+        <div class="panel" id="panel-proxies">
+            <div class="flex-between mb-20">
+                <div class="section-title">IP代理池</div>
+                <div class="flex">
+                    <button class="btn btn-warning" onclick="autoAssignProxies()">一键均匀分配（水军+Bot）</button>
+                    <button class="btn btn-primary" onclick="exportAllProxyWorkers()">一键全部导出</button>
+                    <button class="btn btn-success" onclick="showBatchProxy()">批量导入</button>
+                    <button class="btn btn-primary" onclick="showAddProxy()">+ 添加代理</button>
+                </div>
+            </div>
+            <div id="add-proxy-form" style="display:none" class="card mb-20">
+                <div class="form-group"><label>代理类型</label>
+                    <select id="proxy-type"><option value="socks5">SOCKS5</option><option value="socks4">SOCKS4</option><option value="http">HTTP</option></select>
+                </div>
+                <div class="form-group"><label>主机地址</label><input type="text" id="proxy-host" placeholder="127.0.0.1"></div>
+                <div class="form-group"><label>端口</label><input type="number" id="proxy-port" placeholder="1080"></div>
+                <div class="form-group"><label>用户名（可选）</label><input type="text" id="proxy-username"></div>
+                <div class="form-group"><label>密码（可选）</label><input type="text" id="proxy-password"></div>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="addProxy()">添加</button>
+                    <button class="btn" onclick="hideAddProxy()">取消</button>
+                </div>
+            </div>
+            <div id="batch-proxy-form" style="display:none" class="card mb-20">
+                <div class="form-group"><label>代理类型</label>
+                    <select id="batch-proxy-type"><option value="http">HTTP</option><option value="socks5">SOCKS5</option><option value="socks4">SOCKS4</option></select>
+                </div>
+                <div class="form-group"><label>批量导入（每行一条，格式: host:port:username:password）</label>
+                    <textarea id="batch-proxy-text" rows="8" placeholder="198.65.51.89:7055:user1:pass1"></textarea>
+                </div>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="batchImportProxy()">导入</button>
+                    <button class="btn" onclick="hideBatchProxy()">取消</button>
+                </div>
+            </div>
+            <div class="group-wrap">
+                <div class="group-left" id="proxy-group-list"></div>
+                <div class="group-right" id="proxy-group-detail"><div class="text-gray">点击左侧一组 IP 查看水军（每组最多10个）</div></div>
+            </div>
+            <tbody id="proxies-list" style="display:none"></tbody>
+        </div>
+        <!-- Bot管理 -->
+        <div class="panel" id="panel-bots">
+            <div class="flex-between mb-20">
+                <div class="section-title">Bot管理</div>
+                <div class="flex">
+                    <button class="btn btn-success" onclick="verifyAllBots()">一键验证</button>
+                    <button class="btn btn-warning" onclick="showBatchBotImport()">批量导入Token</button>
+                </div>
+            </div>
+            <div id="batch-bot-form" style="display:none" class="card mb-20">
+                <div class="form-group"><label>批量导入Bot Token（每行一个）</label>
+                    <textarea id="batch-bot-text" rows="8" placeholder="7977489674:AAHxxxxxx"></textarea>
+                </div>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="batchImportBots()">导入</button>
+                    <button class="btn" onclick="hideBatchBotImport()">取消</button>
+                </div>
+            </div>
+            <div class="mb-10" id="bot-stats" style="font-size:13px;color:#8899aa;"></div>
+            <div class="group-wrap">
+                <div class="group-left" id="bot-group-list"></div>
+                <div class="group-right">
+                    <table>
+                        <thead><tr><th>编号</th><th>用户名</th><th>Token</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody id="bots-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- 系统设置 -->
+        <div class="panel" id="panel-config">
+            <div class="section-title">系统设置</div>
+            <div class="card">
+                <div class="form-group">
+                    <label>Telegram API ID</label>
+                    <input type="text" id="cfg-api-id" placeholder="12345678">
+                </div>
+                <div class="form-group">
+                    <label>Telegram API Hash</label>
+                    <input type="text" id="cfg-api-hash" placeholder="abcdef1234567890">
+                </div>
+                <div class="form-group">
+                    <label>Bot Token（主Bot）</label>
+                    <input type="text" id="cfg-bot-token" placeholder="123456:ABC-DEF...">
+                </div>
+                <div class="form-group">
+                    <label>Bot Username（主Bot）</label>
+                    <input type="text" id="cfg-bot-username" placeholder="kuaiyue19Bot">
+                </div>
+                <div class="form-group">
+                    <label>每日发送限制（每个水军号）</label>
+                    <input type="number" id="cfg-daily-limit" value="50">
+                </div>
+                <div class="form-group">
+                    <label>发送间隔（最小秒数）</label>
+                    <input type="number" id="cfg-interval-min" value="30">
+                </div>
+                <div class="form-group">
+                    <label>发送间隔（最大秒数）</label>
+                    <input type="number" id="cfg-interval-max" value="120">
+                </div>
+                <button class="btn btn-primary" onclick="saveConfig()">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+
+        <!-- 批量导入面板 -->
+        <div class="panel" id="panel-batch-import">
+            <div class="flex-between mb-20">
+                <h2 style="color:#4fc3f7;">批量导入水军号</h2>
+                <div class="flex">
+                    <button class="btn btn-primary" onclick="loadImportStatus()">&#x1f504; 刷新状态</button>
+                </div>
+            </div>
+            <div class="stats-grid" id="import-stats">
+                <div class="stat-card"><div class="stat-value" id="stat-imported">0</div><div class="stat-label">已导入</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-profile-set">0</div><div class="stat-label">已设置资料</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-pending">0</div><div class="stat-label">待设置</div></div>
+                <div class="stat-card"><div class="stat-value" id="stat-active-imported">0</div><div class="stat-label">已激活</div></div>
+            </div>
+
+            <!-- 手动设置资料表单 -->
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-title">&#x270f;&#xfe0f; 手动设置资料（应用到所有待设置水军号）</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                    <div>
+                        <label style="display:block; color:#aaa; margin-bottom:5px; font-size:13px;">名字（必填）</label>
+                        <input type="text" id="profile-first-name" class="form-input" placeholder="例如：婉儿" value="婉儿" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="display:block; color:#aaa; margin-bottom:5px; font-size:13px;">姓氏 / 后缀（可选）</label>
+                        <input type="text" id="profile-last-name" class="form-input" placeholder="例如：快约到家欢迎您" value="快约到家欢迎您" style="width:100%;">
+                    </div>
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#aaa; margin-bottom:5px; font-size:13px;">用户名前缀（系统会自动加数字保证唯一）</label>
+                    <input type="text" id="profile-username-prefix" class="form-input" placeholder="例如：kuaiyue" value="kuaiyue" style="width:100%;">
+                </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; color:#aaa; margin-bottom:5px; font-size:13px;">简介（Bio）</label>
+                    <textarea id="profile-bio" class="form-input" rows="4" placeholder="输入简介内容" style="width:100%;">https://kuaiyue.vip
+https://t.me/kuaiyue9
+咨询热线：@kuaiyue123456789</textarea>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <label style="display:flex; align-items:center; gap:8px; color:#ccc; cursor:pointer;">
+                        <input type="checkbox" id="profile-use-avatar" checked>
+                        <span>使用头像库随机头像（推荐）</span>
+                    </label>
+                </div>
+                <button class="btn btn-success" onclick="setupAllProfiles()" id="btn-setup-profiles">
+                    &#x1f680; 一键开始修改资料
+                </button>
+                <p style="color:#888; font-size:12px; margin-top:8px;">
+                    会把上面填写的资料应用到所有「待设置」的水军号，用户名会自动追加数字保证不冲突。
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">&#x1f4e6; 上传ZIP包（含 .session + .json 文件）</div>
+                <p style="color:#888;margin-bottom:10px;font-size:13px;">ZIP包内每个水军号需要两个文件：手机号.session 和 手机号.json（如 60163189524.session + 60163189524.json）</p>
+                <input type="file" id="import-zip-file" accept=".zip" style="margin-bottom:10px;">
+                <button class="btn btn-primary" onclick="uploadImportZip()">&#x1f4e4; 上传并导入</button>
+                <div id="import-progress" style="margin-top:10px;display:none;">
+                    <div style="background:#2a3a4a;border-radius:4px;height:6px;overflow:hidden;">
+                        <div id="import-progress-bar" style="background:#4caf50;height:100%;width:0%;transition:width 0.3s;"></div>
+                    </div>
+                    <p id="import-progress-text" style="color:#888;font-size:12px;margin-top:5px;"></p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">&#x1f4cb; 已导入水军号列表</div>
+                <div style="max-height:400px;overflow-y:auto;">
+                    <table>
+                        <thead><tr><th>编号</th><th>手机号</th><th>名字</th><th>用户名</th><th>头像</th><th>资料状态</th><th>API</th></tr></thead>
+                        <tbody id="import-list"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- API管理面板 -->
+        <div class="panel" id="panel-api-config">
+            <div class="flex-between mb-20">
+                <h2 style="color:#4fc3f7;">API 配置管理</h2>
+                <div class="flex">
+                    <button class="btn btn-warning" onclick="autoAssignApis()">一键按组分配</button>
+                    <button class="btn btn-primary" onclick="loadApiConfigs()">刷新</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">添加单个API</div>
+                <div class="flex" style="flex-wrap:wrap;">
+                    <input type="text" id="new-api-id" placeholder="api_id" style="flex:1;min-width:120px;">
+                    <input type="text" id="new-api-hash" placeholder="api_hash" style="flex:2;min-width:200px;">
+                    <input type="text" id="new-api-note" placeholder="备注（可选）" style="flex:1;min-width:100px;">
+                    <button class="btn btn-primary" onclick="addApiConfig()">添加</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">一键批量填充（每行：api_id|api_hash|备注）</div>
+                <textarea id="batch-api-text" placeholder="2040|b18441a1ff607e10a989891a5462e627|API-1" style="min-height:120px;font-family:monospace;font-size:12px;"></textarea>
+                <button class="btn btn-success" onclick="batchAddApis()">一键填充</button>
+            </div>
+            <div id="api-assign-stats" class="text-gray" style="margin:8px 0 12px;"></div>
+            <div class="group-wrap">
+                <div class="group-left" id="api-group-list"></div>
+                <div class="group-right" id="api-group-detail">
+                    <div class="text-gray">左侧：30 条线路组 + 待配池。点一组查看已配 API。</div>
+                </div>
+            </div>
+            <table style="display:none"><tbody id="api-list"></tbody></table>
+            <span id="api-count" style="display:none">0</span>
+        </div>
+        <!-- 头像库面板 -->
+        <div class="panel" id="panel-avatars">
+            <div class="flex-between mb-20">
+                <h2 style="color:#4fc3f7;">头像库管理</h2>
+                <button class="btn btn-primary" onclick="loadAvatars()">&#x1f504; 刷新</button>
+            </div>
+            <div class="card">
+                <div class="card-title">&#x1f4e4; 上传头像（支持ZIP包或单张图片）</div>
+                <p style="color:#888;margin-bottom:10px;font-size:13px;">支持 JPG/PNG/WebP 格式，可打包ZIP一次上传多张</p>
+                <input type="file" id="avatar-upload-file" accept=".zip,.jpg,.jpeg,.png,.webp" multiple>
+                <button class="btn btn-primary" onclick="uploadAvatars()" style="margin-top:10px;">&#x1f4e4; 上传</button>
+            </div>
+            <div class="card">
+                <div class="card-title">&#x1f5bc; 头像库 (<span id="avatar-count">0</span>张)</div>
+                <div id="avatar-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px;max-height:500px;overflow-y:auto;padding:10px;"></div>
+            </div>
+        </div>
+
+    <script>
+        const API = '';
+
+        // === 鉴权: 包装 fetch 自动附带 token, 401 时弹出登录 ===
+        const _origFetch = window.fetch.bind(window);
+        window.fetch = function(url, opts) {
+            opts = opts || {};
+            const token = localStorage.getItem('tg_auth_token');
+            if (token) {
+                opts.headers = Object.assign({}, opts.headers || {}, {'X-Auth-Token': token});
+            }
+            return _origFetch(url, opts).then(function(resp) {
+                if (resp.status === 401) {
+                    localStorage.removeItem('tg_auth_token');
+                    showLogin();
+                }
+                return resp;
+            });
+        };
+        function showLogin() { document.getElementById('login-overlay').style.display = 'flex'; }
+        function hideLogin() { document.getElementById('login-overlay').style.display = 'none'; }
+        function logout() { localStorage.removeItem('tg_auth_token'); showLogin(); }
+        async function doLogin() {
+            const u = document.getElementById('login-user').value;
+            const p = document.getElementById('login-pass').value;
+            const errEl = document.getElementById('login-err');
+            errEl.textContent = '';
+            try {
+                const r = await _origFetch(API + '/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: u, password: p})
+                });
+                const d = await r.json();
+                if (d.ok && d.token) {
+                    localStorage.setItem('tg_auth_token', d.token);
+                    hideLogin();
+                    loadDashboard();
+                } else {
+                    errEl.textContent = d.error || '登录失败';
+                }
+            } catch(e) {
+                errEl.textContent = '请求失败: ' + e.message;
+            }
+        }
+
+        // Tab切换
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('panel-' + name).classList.add('active');
+            loadTabData(name);
+        }
+
+        function loadTabData(name) {
+            if (name === 'dashboard') loadDashboard();
+            else if (name === 'workers') loadWorkers();
+            else if (name === 'targets') loadTargets();
+            else if (name === 'ads') loadAds();
+            else if (name === 'proxies') loadProxies();
+            else if (name === 'bots') loadBots();
+            else if (name === 'config') loadConfig();
+        }
+
+        // === 仪表盘 ===
+        async function loadDashboard() {
+            try {
+                const r = await fetch(API + '/api/status');
+                const d = await r.json();
+                document.getElementById('stat-memory').textContent = d.memory_percent + '%';
+                document.getElementById('stat-cpu').textContent = d.cpu_percent + '%';
+                document.getElementById('stat-workers').textContent = d.workers_connected + '/' + d.workers_total;
+                document.getElementById('stat-today').textContent = d.today_sends;
+                document.getElementById('stat-total').textContent = d.total_sends;
+
+                const sr = await fetch(API + '/api/send/status');
+                const sd = await sr.json();
+                document.getElementById('send-status-text').innerHTML = sd.running ?
+                    '<span class="text-green">● 运行中</span>' :
+                    '<span class="text-gray">● 未运行</span>';
+                // 更新工作流面板
+                updateWorkflowPanel(sd);
+            } catch(e) { console.error(e); }
+        }
+
+        async function startSend() {
+            try {
+                const r = await fetch(API + '/api/send/start', {method: 'POST'});
+                const d = await r.json();
+                if (d.ok === false) {
+                    alert('⚠️ ' + (d.error || '启动失败'));
+                } else {
+                    alert('✅ 发送任务已启动');
+                }
+            } catch(e) {
+                alert('❌ 请求失败: ' + e.message);
+            }
+            loadDashboard();
+        }
+
+        async function stopSend() {
+            try {
+                const r = await fetch(API + '/api/send/stop', {method: 'POST'});
+                const d = await r.json();
+                if (d.ok === false) {
+                    alert('⚠️ ' + (d.error || '停止失败'));
+                } else {
+                    alert('✅ 发送任务已停止');
+                }
+            } catch(e) {
+                alert('❌ 请求失败: ' + e.message);
+            }
+            loadDashboard();
+        }
+
+        // === 水军管理 ===
+        function showAddWorker() {
+            document.getElementById('add-worker-form').style.display = 'block';
+            var sel = document.getElementById('worker-proxy-select');
+            var proxies = window._allProxies || [];
+            var opts = '<option value="">-- 请先选择 IP 线路 --</option>';
+            for (var i = 0; i < proxies.length; i++) {
+                var px = proxies[i];
+                var n = workersOfProxy(px).length;
+                opts += '<option value="' + px.id + '"' + (n >= 10 ? ' disabled' : '') + '>线路' + (i + 1) + ' ' + px.host + ':' + px.port + ' ' + n + '/10</option>';
+            }
+            sel.innerHTML = opts;
+            if (window._selectedWorkerGroup) sel.value = window._selectedWorkerGroup;
+        }
+
+        async function addWorker() {
+            var phone = document.getElementById('worker-phone').value.trim();
+            var proxyId = document.getElementById('worker-proxy-select').value;
+            if (!proxyId) return alert('必须先选择 IP 线路');
+            if (!phone) return alert('请输入手机号');
+            var px = (window._allProxies || []).filter(function (x) { return String(x.id) === String(proxyId); })[0];
+            if (px && workersOfProxy(px).length >= 10) return alert('该线路已满 10 个水军');
+            await fetch(API + '/api/workers/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone, proxy_id: proxyId })
+            });
+            try {
+                await fetch(API + '/api/proxies/' + proxyId + '/assign-workers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': localStorage.getItem('token') || '' },
+                    body: JSON.stringify({ phones: [phone] })
+                });
+            } catch (e) {}
+            hideAddWorker();
+            window._selectedWorkerGroup = proxyId;
+            loadWorkers();
+        }
+
+        async function loadWorkers() {
+            const r = await fetch(API + '/api/workers');
+            const workers = await r.json();
+            // 排序：新增的水军号排在最前面（按created_at倒序，无日期的排最前）
+            workers.sort((a, b) => {
+                if (!a.created_at && !b.created_at) return 0;
+                if (!a.created_at) return -1;
+                if (!b.created_at) return -1;
+                return new Date(b.created_at) - new Date(a.created_at);
+            });
+            const html = workers.map(w => `
+                <div class="card" style="${w.is_restricted ? 'border-left:3px solid #ff4444;' : w.in_cooldown ? 'border-left:3px solid #ffaa00;' : ''}">
+                    <div class="flex-between">
+                        <div>
+                            <strong>${w.phone}</strong>
+                            <span class="badge ${w.connected ? 'badge-green' : 'badge-red'}">${w.connected ? '在线' : '离线'}</span>
+                            <span class="badge badge-blue">${w.runtime_status || w.status}</span>
+                            ${w.is_restricted ? '<span class="badge" style="background:#ff4444;color:#fff">⚠️已限制</span>' : ''}
+                            ${w.in_cooldown ? '<span class="badge" style="background:#ffaa00;color:#000">⏸冷却' + w.cooldown_remaining + 's</span>' : ''}
+                            <span class="text-gray" style="color:#4caf50;"> \u2192 Bot\u6c60\u8f6e\u6362 (${w.banned_bots ? w.banned_bots.length : 0}\u4e2a\u88ab\u7981)</span>
+                        </div>
+                        <div class="flex">
+                            <button class="btn btn-sm btn-primary" onclick="connectWorker('${w.id}')">连接</button>
+                            <button class="btn btn-sm btn-success" onclick="sendCode('${w.id}', '${w.phone}')">发送验证码</button>
+                            <button class="btn btn-sm btn-warning" onclick="inputCode('${w.id}', '${w.phone}')">输入验证码</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteWorker('${w.id}')">删除</button>
+                        </div>
+                    </div>
+                    ${w.is_restricted ? `<div class="text-red" style="margin-top:6px;font-size:12px">⚠️ 限制原因: ${w.restricted_reason} (${w.restricted_at})</div>` : ''}
+                    ${w.last_error ? `<div class="text-red" style="margin-top:6px;font-size:12px">错误: ${w.last_error}</div>` : ''}
+                    ${w.restriction_count > 0 ? `<div style="margin-top:6px;font-size:12px;color:${w.restriction_count >= 7 ? '#ff1744' : w.restriction_count >= 4 ? '#ff9800' : '#ffc107'};">⚠️ 已被限制 ${w.restriction_count} 次${w.restriction_count >= 7 ? ' (即将自动删除)' : ''}</div>` : ''}
+                    ${w.daily_sends ? `<div class="text-gray" style="margin-top:4px;font-size:12px">今日发送: ${w.daily_sends}</div>` : ''}
+                </div>
+            `).join('');
+            const online = workers.filter(w => w.connected).length;
+            const idle = workers.filter(w => w.runtime_status === "idle").length;
+            const cooldown = workers.filter(w => w.in_cooldown).length;
+            const offline = workers.filter(w => !w.connected).length;
+            const high_risk = workers.filter(w => w.restriction_count >= 7).length;
+            const statsHtml = `<div class="card" style="margin-bottom:15px;padding:10px 20px;background:#0a1520;">
+                <span style="margin-right:20px;">总计: <strong style="color:#4fc3f7;">${workers.length}</strong> 个</span>
+                <span style="margin-right:20px;">在线: <strong style="color:#4caf50;">${online}</strong></span>
+                <span style="margin-right:20px;">空闲: <strong style="color:#2196f3;">${idle}</strong></span>
+                <span style="margin-right:20px;">冷却: <strong style="color:#ff9800;">${cooldown}</strong></span>
+                <span style="margin-right:20px;">离线: <strong style="color:#f44336;">${offline}</strong></span>
+                
+            </div>`;
+            document.getElementById('workers-list').innerHTML = statsHtml + (html || '<div class="text-gray">暂无水军号</div>');
+        }
+
+        async function addWorker() {
+            const phone = document.getElementById('worker-phone').value;
+            const botSelect = document.getElementById('worker-bot-select');
+            const bot_id = botSelect.value;
+            const bot_username = bot_id ? botSelect.options[botSelect.selectedIndex].text.split('@')[1] : '';
+            if (!phone) return alert('请输入手机号');
+            if (!bot_id) return alert('请选择关联的Bot');
+            await fetch(API + '/api/workers/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone, bot_username, bot_id})
+            });
+            hideAddWorker();
+            loadWorkers();
+        }
+
+
+        async function connectAllWorkers() {
+            if (!confirm('确认一键连接所有水军号？')) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ 连接中...';
+            try {
+                const r = await fetch(API + '/api/workers/connect-all', {method: 'POST'});
+                const d = await r.json();
+                if (d.ok) {
+                    alert(d.message);
+                } else {
+                    alert('连接失败: ' + d.error);
+                }
+            } catch(e) {
+                alert('请求失败: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = '🔗 一键全部连接';
+            loadWorkers();
+        }
+        async function connectWorker(id) {
+            const r = await fetch(API + `/api/workers/${id}/connect`, {method: 'POST'});
+            const d = await r.json();
+            alert(d.ok ? '连接成功' : '连接失败: ' + d.error);
+            loadWorkers();
+        }
+
+        async function sendCode(id, phone) {
+            if (!confirm('确认向 ' + phone + ' 发送验证码？')) return;
+            const r = await fetch(API + `/api/workers/${id}/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone})
+            });
+            const d = await r.json();
+            if (d.ok && d.step === 'code_sent') {
+                alert('验证码已发送！请在Telegram App中查看验证码，然后点击"输入验证码"按钮');
+            } else {
+                alert('发送失败: ' + (d.error || '未知错误'));
+            }
+        }
+        async function inputCode(id, phone) {
+            const code = prompt('请输入收到的验证码:');
+            if (!code) return;
+            const r = await fetch(API + `/api/workers/${id}/login`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone, code})
+            });
+            const d = await r.json();
+            if (d.ok) {
+                if (d.step === 'need_2fa') {
+                    const pwd = prompt('该账号开启了两步验证，请输入密码:');
+                    if (pwd) {
+                        const r2 = await fetch(API + `/api/workers/${id}/login`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({phone, code, password: pwd})
+                        });
+                        const d2 = await r2.json();
+                        alert(d2.ok ? '登录成功！' : '登录失败: ' + d2.error);
+                    }
+                } else {
+                    alert('登录成功！');
+                }
+            } else {
+                alert('登录失败: ' + (d.error || '未知错误'));
+            }
+            loadWorkers();
+        }
+        async function deleteWorker(id) {
+            if (!confirm('确认删除此水军号？')) return;
+            const r = await fetch(API + `/api/workers/${id}`, {method: 'DELETE'});
+            const d = await r.json();
+            alert(d.ok ? '删除成功' : '删除失败: ' + d.error);
+            loadWorkers();
+        }
+        // === 目标用户 ===
+        async function resetRestriction(phone) {
+            if (!confirm('确认重置水军 ' + phone + ' 的所有限制记录？')) return;
+            try {
+                const r = await fetch(API + '/api/restrictions/reset', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({worker_phone: phone})
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    alert('✅ 已重置 ' + phone + ' 的限制记录');
+                    loadWorkers();
+                } else {
+                    alert('❌ 重置失败: ' + (d.error || '未知错误'));
+                }
+            } catch(e) {
+                alert('❌ 请求失败: ' + e.message);
+            }
+        }
+        async function loadTargets() {
+            const r = await fetch(API + '/api/targets');
+            const data = await r.json();
+        const targets = Array.isArray(data) ? data : (data.targets || []);
+            // 按状态分组：sent在前，failed次之，pending最后；同组内按时间倒序
+            const statusOrder = {'sent': 0, 'failed': 1, 'pending': 2};
+            targets.sort((a, b) => {
+                const sa = statusOrder[a.status] ?? 2;
+                const sb = statusOrder[b.status] ?? 2;
+                if (sa !== sb) return sa - sb;
+                // 同状态按时间倒序
+                const ta = a.sent_at || '';
+                const tb = b.sent_at || '';
+                return tb.localeCompare(ta);
+            });
+            const html = targets.map(t => `
+                <tr>
+                    <td>@${t.username}</td>
+                    <td><span class="badge ${t.status === 'sent' ? 'badge-green' : t.status === 'failed' ? 'badge-red' : 'badge-yellow'}">${t.status}</span></td>
+                    <td class="text-gray">${t.bot_username ? '@' + t.bot_username : '-'}</td>
+                    <td class="text-gray">${t.sent_at || '-'}</td>
+                    <td class="text-gray">${t.result || '-'}</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteTarget('${t.username}')">删除</button></td>
+                </tr>
+            `).join('');
+            document.getElementById('targets-list').innerHTML = html;
+            // 更新统计
+            const total = targets.length;
+            const pending = targets.filter(t => t.status === 'pending').length;
+            const sent = targets.filter(t => t.status === 'sent').length;
+            const failed = targets.filter(t => t.status === 'failed').length;
+            document.getElementById('targets-total').textContent = total;
+            document.getElementById('targets-pending').textContent = pending;
+            document.getElementById('targets-sent').textContent = sent;
+            document.getElementById('targets-failed').textContent = failed;
+        }
+
+        async function addTargets() {
+            const text = document.getElementById('targets-input').value;
+            const usernames = text.split('\n').map(l => l.trim()).filter(l => l);
+            if (!usernames.length) return alert('请输入用户名');
+            await fetch(API + '/api/targets', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({usernames})
+            });
+            document.getElementById('targets-input').value = '';
+            loadTargets();
+        }
+
+        async function deleteAllTargets() {
+            if (!confirm("确定要删除所有目标用户吗？此操作不可恢复！")) return;
+            try {
+                const res = await fetch("/api/targets/all", {method: "DELETE", headers: {"X-Auth-Token": localStorage.getItem("token")}});
+                const data = await res.json();
+                if (data.ok) {
+                    alert("所有目标用户已删除");
+                    loadTargets();
+                } else {
+                    alert("删除失败: " + (data.error || "未知错误"));
+                }
+            } catch(e) { alert("请求失败: " + e.message); }
+        }
+
+        async function deleteTarget(username) {
+            await fetch(API + `/api/targets/${username}`, {method: 'DELETE'});
+            loadTargets();
+        }
+
+        // === 广告管理 ===
+        function showAddAd() { document.getElementById('add-ad-form').style.display = 'block'; }
+        function hideAddAd() { document.getElementById('add-ad-form').style.display = 'none'; }
+
+        async function loadAds() {
+            const r = await fetch(API + '/api/ads');
+            const ads = await r.json();
+            const html = ads.map(ad => `
+                <div class="card">
+                    <div class="flex-between">
+                        <div class="card-title">${ad.name}</div>
+                        <button class="btn btn-sm btn-danger" onclick="deleteAd('${ad.id}')">删除</button>
+                    </div>
+                    <div style="margin-top:8px;font-size:13px;color:#ccc">${ad.message}</div>
+                    ${ad.image_url ? `<div style="margin-top:6px"><img src="${ad.image_url}" style="max-width:200px;border-radius:6px"></div>` : ''}
+                    ${ad.url_buttons && ad.url_buttons.length ? `<div style="margin-top:6px;font-size:12px;color:#64b5f6">按钮: ${ad.url_buttons.map(b => b.text + ' → ' + b.url).join(', ')}</div>` : ''}
+                </div>
+            `).join('');
+            document.getElementById('ads-list').innerHTML = html || '<div class="text-gray">暂无广告</div>';
+        }
+
+        async function addAd() {
+            const name = document.getElementById('ad-name').value;
+            const message = document.getElementById('ad-message').value;
+            const image_url = document.getElementById('ad-image-url').value;
+            const image_file_id = document.getElementById('ad-image-file-id').value;
+            let url_buttons = [];
+            try { url_buttons = JSON.parse(document.getElementById('ad-buttons').value || '[]'); } catch(e) {}
+
+            await fetch(API + '/api/ads', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, message, image_url, image_file_id, url_buttons})
+            });
+            hideAddAd();
+            loadAds();
+        }
+
+        async function deleteAd(id) {
+            if (!confirm('确认删除？')) return;
+            await fetch(API + `/api/ads/${id}`, {method: 'DELETE'});
+            loadAds();
+        }
+
+        // === IP代理池 ===
+        function showAddProxy() { document.getElementById('add-proxy-form').style.display = 'block'; }
+        function hideAddProxy() { document.getElementById('add-proxy-form').style.display = 'none'; }
+
+        async function loadProxies() {
+            const r = await fetch(API + '/api/proxies', {headers: {"X-Auth-Token": localStorage.getItem("token") || ""}});
+            const data = await r.json();
+            const list = Array.isArray(data) ? data : (data.proxies || []);
+            window._proxyList = list;
+            const html = list.map(p => {
+                const phones = p.assigned_worker_phones || (p.assigned_workers || []).map(x => x.phone).filter(Boolean);
+                const addr = (p.host || '') + ':' + (p.port || '');
+                const phoneHtml = phones.length
+                    ? phones.map(ph => `<div class="proxy-phone">${ph}</div>`).join('')
+                    : '<span style="opacity:.5">未分配</span>';
+                return `
+                <tr>
+                    <td>${p.id || ''}</td>
+                    <td><span class="badge">${p.type || 'http'}</span></td>
+                    <td>
+                        <div><b>${addr}</b></div>
+                        <div style="opacity:.7;font-size:12px">端口 ${p.port || '-'}</div>
+                    </td>
+                    <td style="text-align:left;min-width:220px">
+                        <div><span class="badge badge-green">${phones.length} 个</span></div>
+                        <div style="max-height:140px;overflow:auto;margin:6px 0">${phoneHtml}</div>
+                        <textarea id="addw-${p.id}" rows="2" placeholder="在此IP下添加水军号，每行一个" style="width:100%;background:#0f172a;color:#e5e7eb;border:1px solid #334155;border-radius:6px;padding:6px"></textarea>
+                        <button class="btn btn-primary" style="margin-top:4px" onclick="addWorkersToProxy('${p.id}')">添加到此IP</button>
+                    </td>
+                    <td><span class="badge">${(p.assigned_bot_accounts || []).length} 个</span></td>
+                    <td><span class="badge badge-green">${p.status || ''}</span></td>
+                    <td>
+                        <button class="btn btn-primary" onclick="exportProxyWorkers('${p.id}')">导出水军+地址</button>
+                        <button class="btn btn-danger" onclick="deleteProxy('${p.id}')">删除</button>
+                    </td>
+                </tr>`;
+            }).join('');
+            document.getElementById('proxies-list').innerHTML = html;
+        }
+
+
+
+        function formatProxyExport(p) {
+            const addr = (p.host || '') + ':' + (p.port || '');
+            const phones = p.assigned_worker_phones || (p.assigned_workers || []).map(x => x.phone).filter(Boolean);
+            const phoneLine = '水军号' + (phones.length ? phones.join('|') : '');
+            return '# IP地址: ' + addr + '\n' + phoneLine;
+        }
+
+        function downloadText(filename, text) {
+            const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function exportProxyWorkers(proxyId) {
+            const list = window._proxyList || [];
+            const p = list.find(x => x.id === proxyId);
+            if (!p) { alert('找不到该代理'); return; }
+            const addr = (p.host || '') + '_' + (p.port || '');
+            downloadText('proxy_' + addr + '_workers.txt', formatProxyExport(p));
+        }
+
+        function exportAllProxyWorkers() {
+            const list = window._proxyList || [];
+            if (!list.length) { alert('没有代理数据，请先刷新'); return; }
+            const text = list.map(formatProxyExport).join('\n\n');
+            downloadText('all_proxies_workers.txt', text);
+        }
+
+        async function addWorkersToProxy(proxyId) {
+            const el = document.getElementById('addw-' + proxyId);
+            const raw = (el && el.value || '').trim();
+            if (!raw) { alert('请输入水军号，每行一个'); return; }
+            const phones = raw.split(/[\\n,，\\s]+/).map(s => s.trim()).filter(Boolean);
+            const r = await fetch(API + '/api/proxies/' + proxyId + '/assign-workers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Auth-Token': localStorage.getItem('token') || ''
+                },
+                body: JSON.stringify({phones})
+            });
+            const d = await r.json();
+            if (!d.ok) { alert(d.error || '添加失败'); return; }
+            alert('已绑定 ' + (d.added || []).length + ' 个\\n未找到: ' + ((d.missing||[]).join(', ') || '无'));
+            loadProxies();
+        }
+
+
+        async function addProxy() {
+            const type = document.getElementById('proxy-type').value;
+            const host = document.getElementById('proxy-host').value;
+            const port = document.getElementById('proxy-port').value;
+            const username = document.getElementById('proxy-username').value;
+            const password = document.getElementById('proxy-password').value;
+            if (!host || !port) return alert('请输入地址和端口');
+            await fetch(API + '/api/proxies', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type, host, port: parseInt(port), username, password})
+            });
+            hideAddProxy();
+            loadProxies();
+        }
+
+        async function deleteProxy(id) {
+            if (!confirm('确认删除？')) return;
+            await fetch(API + `/api/proxies/${id}`, {method: 'DELETE'});
+            loadProxies();
+        }
+
+        async function autoAssignProxies() {
+            const perProxy = prompt('每条IP分配多少个水军？（默认5）', '5');
+            if (perProxy === null) return;
+            const r = await fetch(API + '/api/proxies/auto-assign', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({workers_per_proxy: parseInt(perProxy) || 5, bots_per_proxy: 40})
+            });
+            const d = await r.json();
+            alert('分配完成！\n水军: ' + d.assigned_workers + '/' + d.total_workers + '\nBot: ' + d.assigned_bots + '/' + d.total_bots + '\n代理: ' + d.total_proxies);
+            loadProxies();
+        }
+
+
+        function showBatchProxy() { document.getElementById('batch-proxy-form').style.display = 'block'; }
+        function hideBatchProxy() { document.getElementById('batch-proxy-form').style.display = 'none'; }
+        async function batchImportProxy() {
+            const type = document.getElementById('batch-proxy-type').value;
+            const text = document.getElementById('batch-proxy-text').value;
+            if (!text.trim()) return alert('请输入代理列表');
+            const r = await fetch(API + '/api/proxies/batch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({type, proxies: text})
+            });
+            const d = await r.json();
+            let msg = '导入完成！成功: ' + d.added + ' 条';
+            if (d.errors && d.errors.length > 0) {
+                msg += '\n失败: ' + d.errors.length + ' 条\n' + d.errors.join('\n');
+            }
+            alert(msg);
+            hideBatchProxy();
+            document.getElementById('batch-proxy-text').value = '';
+            loadProxies();
+        }
+
+
+        
+        // === 清除所有限制记录 ===
+        async function clearAllRestrictions() {
+            if (!confirm('确认清除所有限制记录？\n这将重置所有水军+Bot的banned状态')) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ 清除中...';
+            try {
+                const r = await fetch(API + '/api/restrictions/reset', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({})
+                });
+                const d = await r.json();
+                if (d.ok) {
+                    alert('✅ 所有限制记录已清除！水军号现在可以使用全部Bot池');
+                    loadWorkers();
+                } else {
+                    alert('清除失败: ' + (d.error || '未知错误'));
+                }
+            } catch(e) {
+                alert('清除失败: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = '🔄 清除所有限制';
+        }
+
+        // === 水军分配Bot ===
+        async function autoAssignAllBots() {
+            if (!confirm('确认一键分配Bot？\n将所有Bot均匀分配给所有水军号')) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ 分配中...';
+            try {
+                // 获取所有Bot
+                const botsR = await fetch(API + '/api/bots');
+                const bots = await botsR.json();
+                const botIds = bots.map(b => b.id);
+                // 获取所有水军
+                const workersR = await fetch(API + '/api/workers');
+                const workers = await workersR.json();
+                const workerIds = workers.map(w => w.id);
+                if (botIds.length === 0) { alert('没有可用的Bot'); return; }
+                if (workerIds.length === 0) { alert('没有可用的水军号'); return; }
+                // 均匀分配：每个水军号分配一部分Bot
+                const botsPerWorker = Math.ceil(botIds.length / workerIds.length);
+                let assigned = 0;
+                for (let i = 0; i < workerIds.length; i++) {
+                    const start = i * botsPerWorker;
+                    const end = Math.min(start + botsPerWorker, botIds.length);
+                    if (start >= botIds.length) {
+                        // Bot不够分，循环分配
+                        const loopStart = (i * botsPerWorker) % botIds.length;
+                        const loopEnd = Math.min(loopStart + botsPerWorker, botIds.length);
+                        var workerBotIds = botIds.slice(loopStart, loopEnd);
+                    } else {
+                        var workerBotIds = botIds.slice(start, end);
+                    }
+                    const r = await fetch(API + '/api/workers/assign-bots', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({worker_ids: [workerIds[i]], bot_ids: workerBotIds})
+                    });
+                    const d = await r.json();
+                    if (d.ok) assigned++;
+                }
+                alert(`分配完成！\n${assigned}个水军号已分配Bot\n共${botIds.length}个Bot，每个水军约${botsPerWorker}个Bot`);
+                loadWorkers();
+            } catch(e) {
+                alert('分配失败: ' + e.message);
+            }
+            btn.disabled = false;
+            btn.textContent = '⚡ 一键分配Bot';
+        }
+        function showBatchAssignBot() {
+            document.getElementById('batch-assign-bot-form').style.display = 'block';
+            fetch(API + '/api/bots').then(function(r){return r.json()}).then(function(bots) {
+                var div = document.getElementById('assign-bot-checkboxes');
+                div.innerHTML = bots.map(function(b) { return '<label style="display:inline-block;width:80px;padding:4px;cursor:pointer;"><input type="checkbox" value="' + b.id + '" style="margin-right:4px;">' + b.number + '</label>'; }).join('');
+            });
+            fetch(API + '/api/workers').then(function(r){return r.json()}).then(function(workers) {
+                var div = document.getElementById('assign-worker-checkboxes');
+                div.innerHTML = workers.map(function(w) {
+                    return '<label style="display:block;padding:4px 0;cursor:pointer;"><input type="checkbox" value="' + w.id + '" style="margin-right:8px;">' + w.phone + (w.bot_username ? ' (当前: @' + w.bot_username + ')' : ' (未分配)') + '</label>';
+                }).join('');
+            });
+        }
+        function hideBatchAssignBot() { document.getElementById('batch-assign-bot-form').style.display = 'none'; }
+
+        async function doBatchAssignBot() {
+            var botCheckboxes = document.querySelectorAll('#assign-bot-checkboxes input[type=checkbox]:checked');
+            var botIds = Array.from(botCheckboxes).map(function(cb){return cb.value});
+            if (botIds.length === 0) return alert('请至少选择一个Bot');
+            var workerCheckboxes = document.querySelectorAll('#assign-worker-checkboxes input[type=checkbox]:checked');
+            var workerIds = Array.from(workerCheckboxes).map(function(cb){return cb.value});
+            if (workerIds.length === 0) return alert('请至少选择一个水军');
+            var r = await fetch(API + '/api/workers/assign-bots', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({worker_ids: workerIds, bot_ids: botIds})
+            });
+            var d = await r.json();
+            if (d.ok) {
+                alert('分配成功！已将 ' + workerIds.length + ' 个水军分配到 ' + botIds.length + ' 个Bot');
+                hideBatchAssignBot();
+                loadWorkers();
+            } else {
+                alert('分配失败: ' + d.error);
+            }
+        }
+
+        // === Bot管理 ===
+        function showBatchBotImport() { document.getElementById('batch-bot-form').style.display = 'block'; }
+        function hideBatchBotImport() { document.getElementById('batch-bot-form').style.display = 'none'; }
+
+
+
+        async function loadBots() {
+            /* CONTIGUOUS_BOT_GROUPS */
+            (function(){
+                if (!Array.isArray(bots)) return;
+                bots.sort(function(a,b){
+                    var da=String(a.username||'').replace(/[^0-9]/g,'');
+                    var db=String(b.username||'').replace(/[^0-9]/g,'');
+                    return (parseInt(da||0,10))-(parseInt(db||0,10));
+                });
+                var G=30, n=bots.length, base=Math.floor(n/G), rem=n%G, idx=0;
+                for (var g=1;g<=G;g++){
+                    var sz=Math.min(10, base+(g<=rem?1:0));
+                    for (var k=0;k<sz && idx<n;k++,idx++){
+                        bots[idx].group_no=g;
+                        bots[idx].number=parseInt(String(bots[idx].username||'').replace(/[^0-9]/g,'')||'0',10);
+                    }
+                }
+            })();
+
+            const GROUPS = 20;
+            const r = await fetch(API + '/api/bots');
+            let bots = await r.json();
+            if (!Array.isArray(bots)) bots = bots.bots || [];
+            function botNum(b) {
+                var d = String(b.username || '').replace(/[^0-9]/g, '');
+                return d ? parseInt(d, 10) : 0;
+            }
+            bots.sort(function(a,b){ return botNum(a)-botNum(b); });
+
+            var groups = {};
+            for (var g=1;g<=GROUPS;g++) groups[g]=[];
+            // 连续分段，不用 Math.min(19, (function(){var _n=bots.length,_g=20,_sz=Math.ceil(_n/_g)||1;return Math.floor(i/_sz);})())
+            var n = bots.length;
+            var base = Math.floor(n / GROUPS), rem = n % GROUPS;
+            var idx = 0;
+            for (var g=1;g<=GROUPS;g++) {
+                var sz = Math.min(10, base + (g<=rem ? 1 : 0));
+                var chunk = bots.slice(idx, idx+sz);
+                idx += sz;
+                chunk.forEach(function(b){ b.group_no=g; b.number=botNum(b); groups[g].push(b); });
+            }
+
+            window._botGroups = groups;
+            if (!window._selectedBotGroup) window._selectedBotGroup = 1;
+            var left='';
+            for (var g=1;g<=GROUPS;g++) {
+                var arr=groups[g], cnt=arr.length;
+                var act = window._selectedBotGroup===g ? ' active' : '';
+                var range = cnt ? (botNum(arr[0]) + '-' + botNum(arr[cnt-1])) : '-';
+                left += '<div class="group-item'+act+'" onclick="selectBotGroup('+g+')"><div class="g-title">Bot组 '+g+'</div><div class="g-sub">'+cnt+'/10 · '+range+'</div></div>';
+            }
+            var gl=document.getElementById('bot-group-list');
+            if (gl) gl.innerHTML=left;
+            renderBotGroup(window._selectedBotGroup);
+
+            var maxNo=0, ts=0, ss=0, fs=0, ban=0;
+            bots.forEach(function(b){
+                ts+=b.total_sends||0; ss+=b.success_sends||0; fs+=b.fail_sends||0;
+                if (b.restriction_status==='platform_banned') ban++;
+                if (botNum(b)>maxNo) maxNo=botNum(b);
+            });
+            var st=document.getElementById('bot-stats');
+            if (st) st.innerHTML='总计: '+bots.length+' 个Bot | 当前组连续小号到大号 | 编号1-'+maxNo+' | 总发送: '+ts+' | 成功: '+ss+' | 失败: '+fs+(ban?(' | 平台禁止: '+ban):'');
+        }
+        function selectBotGroup(g){
+            window._selectedBotGroup=g;
+            document.querySelectorAll('#bot-group-list .group-item').forEach(function(el,i){
+                if(i+1===g) el.classList.add('active'); else el.classList.remove('active');
+            });
+            renderBotGroup(g);
+        }
+        function renderBotGroup(g){
+            var list=(window._botGroups&&window._botGroups[g])?window._botGroups[g]:[];
+            list.sort(function(a,b){
+                var da=String(a.username||'').replace(/[^0-9]/g,''); 
+                var db=String(b.username||'').replace(/[^0-9]/g,'');
+                return (parseInt(da||0,10))-(parseInt(db||0,10));
+            });
+            var html=list.map(function(b){
+                var no=String(b.username||'').replace(/[^0-9]/g,'')||b.number||'-';
+                var rs=b.restriction_status||'';
+                var sc=rs==='platform_banned'?'badge-red':(b.status==='active'?'badge-green':(b.status==='invalid'?'badge-red':'badge-blue'));
+                var st=rs==='platform_banned'?'平台禁止':(b.status||'-');
+                var tok=(b.token||'').substring(0,10)+'...';
+                return '<tr><td>'+no+'</td><td>'+(b.username?'@'+b.username:'-')+'</td><td><code style="font-size:11px">'+tok+'</code></td><td><span class="badge '+sc+'">'+st+'</span></td><td><button class="btn btn-sm btn-primary" onclick="verifyBot(\''+b.id+'\')">验证</button> <button class="btn btn-sm btn-danger" onclick="deleteBot(\''+b.id+'\')">删除</button></td></tr>';
+            }).join('');
+            var tb=document.getElementById('bots-list');
+            if (tb) tb.innerHTML=html||'<tr><td colspan="5">本组暂无Bot</td></tr>';
+        }
+
+        async function batchImportBots() {
+            const text = document.getElementById('batch-bot-text').value;
+            if (!text.trim()) return alert('请输入Bot Token列表');
+            const r = await fetch(API + '/api/bots/batch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({tokens: text})
+            });
+            const d = await r.json();
+            let msg = '导入完成！成功: ' + d.added + ' 条，总计: ' + d.total + ' 个Bot';
+            if (d.errors && d.errors.length > 0) {
+                msg += '\n失败: ' + d.errors.length + ' 条';
+            }
+            alert(msg);
+            hideBatchBotImport();
+            document.getElementById('batch-bot-text').value = '';
+            loadBots();
+        }
+
+        async function verifyBot(id) {
+            const r = await fetch(API + '/api/bots/' + id + '/verify', {method: 'POST'});
+            const d = await r.json();
+            alert(d.ok ? '验证成功: @' + d.username : '验证失败: ' + d.error);
+            loadBots();
+        }
+
+        async function verifyAllBots() {
+            if (!confirm('将验证所有Bot Token，可能需要一些时间，确认？')) return;
+            const r = await fetch(API + '/api/bots/verify-all', {method: 'POST'});
+            const d = await r.json();
+            alert('验证完成！\n有效: ' + d.results.active + '\n无效: ' + d.results.invalid + '\n错误: ' + d.results.error);
+            loadBots();
+        }
+
+        async function deleteBot(id) {
+            if (!confirm('确认删除此Bot？')) return;
+            await fetch(API + '/api/bots/' + id, {method: 'DELETE'});
+            loadBots();
+        }
+
+        // === 系统设置 ===
+        async function loadConfig() {
+            const r = await fetch(API + '/api/config');
+            const cfg = await r.json();
+            document.getElementById('cfg-api-id').value = cfg.api_id || '';
+            document.getElementById('cfg-api-hash').value = cfg.api_hash === '***' ? '' : (cfg.api_hash || '');
+            document.getElementById('cfg-bot-token').value = cfg.bot_token === '***' ? '' : (cfg.bot_token || '');
+            document.getElementById('cfg-bot-username').value = cfg.bot_username || '';
+            document.getElementById('cfg-daily-limit').value = cfg.daily_limit || 50;
+            document.getElementById('cfg-interval-min').value = cfg.send_interval_min || 30;
+            document.getElementById('cfg-interval-max').value = cfg.send_interval_max || 120;
+        }
+
+        async function saveConfig() {
+            const data = {
+                api_id: document.getElementById('cfg-api-id').value,
+                bot_username: document.getElementById('cfg-bot-username').value,
+                daily_limit: parseInt(document.getElementById('cfg-daily-limit').value),
+                send_interval_min: parseInt(document.getElementById('cfg-interval-min').value),
+                send_interval_max: parseInt(document.getElementById('cfg-interval-max').value)
+            };
+            const apiHash = document.getElementById('cfg-api-hash').value;
+            const botToken = document.getElementById('cfg-bot-token').value;
+            if (apiHash) data.api_hash = apiHash;
+            if (botToken) data.bot_token = botToken;
+
+            await fetch(API + '/api/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            alert('设置已保存');
+        }
+
+
+        // ========== 批量导入功能 ==========
+        async function loadImportStatus() {
+            try {
+                const res = await fetch(API + '/api/workers/import-status');
+                const data = await res.json();
+                document.getElementById('stat-imported').textContent = data.stats.total_imported || 0;
+                document.getElementById('stat-profile-set').textContent = data.stats.profile_set || 0;
+                document.getElementById('stat-pending').textContent = data.stats.pending_profile || 0;
+                document.getElementById('stat-active-imported').textContent = data.stats.active || 0;
+                
+                const tbody = document.getElementById('import-list');
+                tbody.innerHTML = data.workers.map((w, i) => `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td>${w.phone}</td>
+                        <td>${w.display_name || '-'}</td>
+                        <td style="color:#4fc3f7;">@${w.target_username || '-'}</td>
+                        <td>${w.avatar_file ? '&#x2705;' : '&#x274c;'}</td>
+                        <td>${w.profile_set ? '<span class="badge badge-green">已设置</span>' : '<span class="badge badge-orange">待设置</span>'}</td>
+                        <td style="font-size:11px;">${w.api_id || '-'}</td>
+                    </tr>
+                `).join('');
+            } catch(e) {
+                console.error('加载导入状态失败:', e);
+            }
+        }
+        
+        async function uploadImportZip() {
+            const fileInput = document.getElementById('import-zip-file');
+            if (!fileInput.files.length) {
+                alert('请选择ZIP文件');
+                return;
+            }
+            const file = fileInput.files[0];
+            if (!file.name.endsWith('.zip')) {
+                alert('请上传ZIP格式文件');
+                return;
+            }
+            
+            document.getElementById('import-progress').style.display = 'block';
+            document.getElementById('import-progress-bar').style.width = '30%';
+            document.getElementById('import-progress-text').textContent = '正在上传...';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                document.getElementById('import-progress-bar').style.width = '60%';
+                document.getElementById('import-progress-text').textContent = '正在解析并导入...';
+                
+                const res = await fetch(API + '/api/workers/batch-import', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                
+                document.getElementById('import-progress-bar').style.width = '100%';
+                
+                if (data.success) {
+                    document.getElementById('import-progress-text').textContent = 
+                        `导入完成！成功: ${data.imported}, 跳过(已存在): ${data.skipped}, 总配对: ${data.total_pairs}`;
+                    loadImportStatus();
+                } else {
+                    document.getElementById('import-progress-text').textContent = '导入失败: ' + (data.error || '未知错误');
+                    document.getElementById('import-progress-bar').style.background = '#f44336';
+                }
+            } catch(e) {
+                document.getElementById('import-progress-text').textContent = '上传失败: ' + e.message;
+                document.getElementById('import-progress-bar').style.background = '#f44336';
+            }
+        }
+        
+        async function setupAllProfiles() {
+            const firstName = document.getElementById('profile-first-name').value.trim();
+            const lastName = document.getElementById('profile-last-name').value.trim();
+            const usernamePrefix = document.getElementById('profile-username-prefix').value.trim();
+            const bio = document.getElementById('profile-bio').value.trim();
+            const useAvatar = document.getElementById('profile-use-avatar').checked;
+
+            if (!firstName) {
+                alert('请填写名字');
+                return;
+            }
+            if (!usernamePrefix) {
+                alert('请填写用户名前缀');
+                return;
+            }
+
+            if (!confirm(`确定要用以下资料批量修改所有待设置水军号吗？\n\n名字：${firstName}${lastName ? ' - ' + lastName : ''}\n用户名前缀：${usernamePrefix}\n使用随机头像：${useAvatar ? '是' : '否'}\n\n过程可能需要几分钟。`)) {
+                return;
+            }
+
+            const btn = document.getElementById('btn-setup-profiles');
+            btn.disabled = true;
+            btn.textContent = '⏳ 正在修改中...';
+
+            try {
+                const res = await fetch(API + '/api/workers/setup-profiles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Auth-Token': localStorage.getItem('tg_auth_token') || ''
+                    },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        username_prefix: usernamePrefix,
+                        bio: bio,
+                        use_random_avatar: useAvatar
+                    })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(`资料设置完成！\n成功: ${data.success_count}\n失败: ${data.failed_count}`);
+                    loadImportStatus();
+                } else {
+                    alert('设置失败: ' + (data.error || data.message || '未知错误'));
+                }
+            } catch (e) {
+                alert('请求失败: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 一键开始修改资料';
+            }
+        }
+        
+        // ========== API管理功能 ==========
+
+        async function autoAssignApis() {
+            if (!confirm('确定一键自动分配API到所有水军号？\n将均匀分配到各API组。')) return;
+            try {
+                const res = await fetch(API + '/api/api-configs/auto-assign', {method: 'POST'});
+                const data = await res.json();
+                if (data.success) {
+                    alert(`分配完成！\n${data.total_workers}个水军号分配到${data.total_apis}组API\n每组约${data.per_api}个`);
+                    loadApiConfigs();
+                } else {
+                    alert(data.error || '分配失败');
+                }
+            } catch(e) {
+                alert('请求失败: ' + e.message);
+            }
+        }
+        
+        // ========== 头像库功能 ==========
+        async function loadAvatars() {
+            try {
+                const res = await fetch(API + '/api/avatars');
+                const data = await res.json();
+                document.getElementById('avatar-count').textContent = data.total || 0;
+                
+                const grid = document.getElementById('avatar-grid');
+                if (data.avatars && data.avatars.length > 0) {
+                    grid.innerHTML = data.avatars.map(a => `
+                        <div style="position:relative;border:1px solid #2a3a4a;border-radius:6px;overflow:hidden;">
+                            <img src="${a.url}" style="width:100%;height:80px;object-fit:cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 80 80%22><rect fill=%22%231a2a3a%22 width=%2280%22 height=%2280%22/><text x=%2240%22 y=%2245%22 fill=%22%23888%22 text-anchor=%22middle%22 font-size=%2210%22>&#x1f5bc;</text></svg>'">
+                            <button onclick="deleteAvatar('${a.filename}')" style="position:absolute;top:2px;right:2px;background:rgba(198,40,40,0.8);border:none;color:white;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;line-height:18px;">&#x2715;</button>
+                        </div>
+                    `).join('');
+                } else {
+                    grid.innerHTML = '<p style="color:#888;grid-column:1/-1;text-align:center;padding:40px;">暂无头像，请上传</p>';
+                }
+            } catch(e) {
+                console.error('加载头像失败:', e);
+            }
+        }
+        
+        async function uploadAvatars() {
+            const fileInput = document.getElementById('avatar-upload-file');
+            if (!fileInput.files.length) {
+                alert('请选择文件');
+                return;
+            }
+            
+            const formData = new FormData();
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('files', fileInput.files[i]);
+            }
+            
+            try {
+                const res = await fetch(API + '/api/avatars/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert(`上传成功！共 ${data.uploaded} 张头像`);
+                    fileInput.value = '';
+                    loadAvatars();
+                } else {
+                    alert(data.error || '上传失败');
+                }
+            } catch(e) {
+                alert('上传失败: ' + e.message);
+            }
+        }
+        
+        async function deleteAvatar(filename) {
+            if (!confirm('确定删除此头像？')) return;
+            try {
+                await fetch(API + '/api/avatars/' + filename, {method: 'DELETE'});
+                loadAvatars();
+            } catch(e) {
+                alert('删除失败: ' + e.message);
+            }
+        }
+
+        // 初始加载 (需先登录; 包入 DOMContentLoaded 确保登录浮层已解析进 DOM)
+        window.addEventListener('DOMContentLoaded', function() {
+            if (localStorage.getItem('tg_auth_token')) {
+                loadDashboard();
+            } else {
+                showLogin();
+            }
+        });
+        setInterval(function() {
+            if (localStorage.getItem('tg_auth_token')) loadDashboard();
+        }, 10000);
+    
+        function updateWorkflowPanel(sd) {
+            const actPanel = document.getElementById('workflow-current-activity');
+            const logsDiv = document.getElementById('workflow-logs');
+            const currentSpan = document.getElementById('workflow-current');
+            if (!sd || !sd.current_activity) return;
+            const act = sd.current_activity;
+            // 显示当前活动
+            if (act && act.status && sd.running) {
+                actPanel.style.display = 'block';
+                document.getElementById('workflow-step').textContent = act.step || act.status;
+                document.getElementById('workflow-worker').textContent = act.worker || '-';
+                document.getElementById('workflow-target').textContent = act.target ? '@' + act.target : '-';
+                currentSpan.textContent = '在线水军: ' + (sd.connected_workers || 0) + ' | 冷却中: ' + (sd.cooldown_workers || 0);
+            } else {
+                actPanel.style.display = 'none';
+                currentSpan.textContent = '在线水军: ' + (sd.connected_workers || 0);
+            }
+            // 显示最近日志
+            if (sd.recent_logs && sd.recent_logs.length > 0) {
+                let html = '';
+                for (let i = sd.recent_logs.length - 1; i >= 0; i--) {
+                    const log = sd.recent_logs[i];
+                    const cls = 'log-' + (log.status || 'info');
+                    const worker = log.worker ? ' [' + log.worker.slice(-4) + ']' : '';
+                    const target = log.target ? ' → @' + log.target : '';
+                    html += '<div class="log-entry ' + cls + '">' +
+                        '<span style="color:#546e7a;">' + log.time + '</span> ' +
+                        '<span style="color:#4fc3f7;">' + log.action + '</span>' +
+                        worker + target + ' ' + (log.details || '') +
+                        '</div>';
+                }
+                logsDiv.innerHTML = html;
+            }
+        }
+
+        /* GROUP_LOGIC_V1 */
+        window._MAX_PER_GROUP = 10;
+        window._BOT_GROUP_COUNT = 20;
+        window._selectedWorkerGroup = null;
+        window._selectedProxyGroup = null;
+        window._selectedBotGroup = 0;
+        window._allWorkers = [];
+        window._allProxies = [];
+        window._allBots = [];
+
+        function workersOfProxy(p, workers) {
+            workers = workers || window._allWorkers || [];
+            var phones = (p.assigned_worker_phones || []).map(String);
+            var ids = (p.assigned_bots || []).map(String);
+            var addr = (p.host || '') + ':' + (p.port || '');
+            return workers.filter(function (w) {
+                if (phones.indexOf(String(w.phone)) >= 0) return true;
+                if (ids.indexOf(String(w.id)) >= 0) return true;
+                var wp = w.proxy || {};
+                if (wp.host && String(wp.port) && (wp.host + ':' + wp.port) === addr) return true;
+                return false;
+            });
+        }
+
+        function renderWorkerCard(w) {
+            var border = w.is_restricted ? 'border-left:3px solid #ff4444;' : (w.in_cooldown ? 'border-left:3px solid #ffaa00;' : '');
+            var html = '<div class="card" style="' + border + '"><div class="flex-between"><div>';
+            html += '<strong>' + (w.phone || '') + '</strong> ';
+            html += '<span class="badge ' + (w.connected ? 'badge-green' : 'badge-red') + '">' + (w.connected ? '在线' : '离线') + '</span> ';
+            html += '<span class="badge badge-blue">' + (w.runtime_status || w.status || '') + '</span>';
+            if (w.is_restricted) html += ' <span class="badge" style="background:#ff4444;color:#fff">已限制</span>';
+            if (w.in_cooldown) html += ' <span class="badge" style="background:#ffaa00;color:#000">冷却' + w.cooldown_remaining + 's</span>';
+            html += '</div><div class="flex">';
+            html += '<button class="btn btn-sm btn-primary" onclick="connectWorker(\'' + w.id + '\')">连接</button> ';
+            html += '<button class="btn btn-sm btn-success" onclick="sendCode(\'' + w.id + '\', \'' + w.phone + '\')">发送验证码</button> ';
+            html += '<button class="btn btn-sm btn-warning" onclick="inputCode(\'' + w.id + '\', \'' + w.phone + '\')">输入验证码</button> ';
+            html += '<button class="btn btn-sm btn-danger" onclick="deleteWorker(\'' + w.id + '\')">删除</button>';
+            html += '</div></div>';
+            if (w.is_restricted) html += '<div class="text-red" style="margin-top:6px;font-size:12px">限制原因: ' + (w.restricted_reason || '') + '</div>';
+            if (w.last_error) html += '<div class="text-red" style="margin-top:6px;font-size:12px">错误: ' + w.last_error + '</div>';
+            if (w.restriction_count) html += '<div style="margin-top:6px;font-size:12px">已被限制 ' + w.restriction_count + ' 次</div>';
+            if (w.daily_sends) html += '<div class="text-gray" style="margin-top:4px;font-size:12px">今日发送: ' + w.daily_sends + '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        function paintWorkerGroups() {
+            var box = document.getElementById('worker-group-list');
+            var right = document.getElementById('workers-list');
+            if (!box || !right) return;
+            var list = (window._allProxies || []).slice(0, 20);
+            if (!window._selectedWorkerGroup && list[0]) window._selectedWorkerGroup = list[0].id;
+            var leftHtml = '';
+            for (var i = 0; i < list.length; i++) {
+                var p = list[i];
+                var n = workersOfProxy(p).length;
+                var act = String(p.id) === String(window._selectedWorkerGroup) ? ' active' : '';
+                leftHtml += '<div class="group-item' + act + '" onclick="selectWorkerGroup(\'' + p.id + '\')">';
+                leftHtml += '<div class="g-title">线路 ' + (i + 1) + ' · ' + p.host + ':' + p.port + '</div>';
+                leftHtml += '<div class="g-sub">' + n + '/10 水军 · ' + (p.type || '') + '</div></div>';
+            }
+            box.innerHTML = leftHtml || '<div class="text-gray">请先在 IP代理池 添加线路</div>';
+            var cur = list.filter(function (x) { return String(x.id) === String(window._selectedWorkerGroup); })[0];
+            if (!cur) { right.innerHTML = '<div class="text-gray">请选择左侧 IP 线路</div>'; return; }
+            var ws = workersOfProxy(cur);
+            var rh = '<div class="mb-10"><strong>' + cur.host + ':' + cur.port + '</strong> <span class="text-gray">' + ws.length + '/10</span></div>';
+            for (var j = 0; j < ws.length; j++) rh += renderWorkerCard(ws[j]);
+            for (var k = ws.length; k < 10; k++) rh += '<div class="slot-empty">空位 ' + (k + 1) + '/10</div>';
+            right.innerHTML = rh;
+        }
+        function selectWorkerGroup(id) {
+            window._selectedWorkerGroup = id;
+            paintWorkerGroups();
+        }
+
+        function showAddWorker() {
+            document.getElementById('add-worker-form').style.display = 'block';
+            var sel = document.getElementById('worker-proxy-select');
+            var proxies = window._allProxies || [];
+            var opts = '<option value="">-- 请先选择 IP 线路 --</option>';
+            for (var i = 0; i < proxies.length; i++) {
+                var p = proxies[i];
+                var n = workersOfProxy(p).length;
+                opts += '<option value="' + p.id + '"' + (n >= 10 ? ' disabled' : '') + '>线路' + (i + 1) + ' ' + p.host + ':' + p.port + ' ' + n + '/10</option>';
+            }
+            sel.innerHTML = opts;
+            if (window._selectedWorkerGroup) sel.value = window._selectedWorkerGroup;
+            fetch(API + '/api/bots').then(function (r) { return r.json(); }).then(function (bots) {
+                var s = document.getElementById('worker-bot-select');
+                s.innerHTML = '<option value="">-- 选择Bot --</option>';
+                for (var i = 0; i < bots.length; i++) {
+                    var b = bots[i];
+                    s.innerHTML += '<option value="' + b.id + '">' + (b.username ? ('@' + b.username) : b.number) + '</option>';
+                }
+            });
+        }
+
+        async function addWorker() {
+            var phone = document.getElementById('worker-phone').value.trim();
+            var proxyId = document.getElementById('worker-proxy-select').value;
+            var botSelect = document.getElementById('worker-bot-select');
+            var bot_id = botSelect.value;
+            var bot_username = '';
+            if (bot_id && botSelect.selectedIndex >= 0) {
+                bot_username = (botSelect.options[botSelect.selectedIndex].text || '').replace(/^@/, '');
+            }
+            if (!proxyId) return alert('必须先选择 IP 线路');
+            if (!phone) return alert('请输入手机号');
+            var p = (window._allProxies || []).filter(function (x) { return String(x.id) === String(proxyId); })[0];
+            if (p && workersOfProxy(p).length >= 10) return alert('该线路已满 10 个水军');
+            await fetch(API + '/api/workers/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone, bot_username: bot_username, bot_id: bot_id, proxy_id: proxyId })
+            });
+            try {
+                await fetch(API + '/api/proxies/' + proxyId + '/assign-workers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Auth-Token': localStorage.getItem('token') || '' },
+                    body: JSON.stringify({ phones: [phone] })
+                });
+            } catch (e) {}
+            hideAddWorker();
+            window._selectedWorkerGroup = proxyId;
+            loadWorkers();
+        }
+
+        async function loadWorkers() {
+            var wr = await fetch(API + '/api/workers');
+            var workers = await wr.json();
+            var pr = await fetch(API + '/api/proxies', { headers: { 'X-Auth-Token': localStorage.getItem('token') || '' } });
+            var pdata = await pr.json();
+            window._allWorkers = workers;
+            window._allProxies = Array.isArray(pdata) ? pdata : (pdata.proxies || []);
+            var online = workers.filter(function (w) { return w.connected; }).length;
+            var idle = workers.filter(function (w) { return w.runtime_status === 'idle'; }).length;
+            var cooldown = workers.filter(function (w) { return w.in_cooldown; }).length;
+            var offline = workers.filter(function (w) { return !w.connected; }).length;
+            var stats = document.getElementById('workers-stats');
+            if (stats) {
+                stats.innerHTML = '<div class="card" style="margin-bottom:15px;padding:10px 20px;background:#0a1520;">'
+                    + '<span style="margin-right:20px;">总计: <strong style="color:#4fc3f7;">' + workers.length + '</strong></span>'
+                    + '<span style="margin-right:20px;">在线: <strong style="color:#4caf50;">' + online + '</strong></span>'
+                    + '<span style="margin-right:20px;">空闲: <strong style="color:#2196f3;">' + idle + '</strong></span>'
+                    + '<span style="margin-right:20px;">冷却: <strong style="color:#ff9800;">' + cooldown + '</strong></span>'
+                    + '<span style="margin-right:20px;">离线: <strong style="color:#f44336;">' + offline + '</strong></span></div>';
+            }
+            paintWorkerGroups();
+        }
+
+        async function loadProxies() {
+            var pr = await fetch(API + '/api/proxies', { headers: { 'X-Auth-Token': localStorage.getItem('token') || '' } });
+            var data = await pr.json();
+            var list = Array.isArray(data) ? data : (data.proxies || []);
+            var wr = await fetch(API + '/api/workers');
+            var workers = await wr.json();
+            window._proxyList = list;
+            window._allProxies = list;
+            window._allWorkers = workers;
+            if (!window._selectedProxyGroup && list[0]) window._selectedProxyGroup = list[0].id;
+            var left = document.getElementById('proxy-group-list');
+            var right = document.getElementById('proxy-group-detail');
+            if (left) {
+                var lh = '';
+                for (var i = 0; i < list.length && i < 30; i++) {
+                    var p = list[i];
+                    var n = workersOfProxy(p, workers).length;
+                    var act = String(p.id) === String(window._selectedProxyGroup) ? ' active' : '';
+                    lh += '<div class="group-item' + act + '" onclick="selectProxyGroup(\'' + p.id + '\')">';
+                    lh += '<div class="g-title">线路 ' + (i + 1) + ' · ' + p.host + ':' + p.port + '</div>';
+                    lh += '<div class="g-sub">' + n + '/10 水军 · ' + (p.type || '') + '</div></div>';
+                }
+                left.innerHTML = lh || '<div class="text-gray">暂无 IP</div>';
+            }
+            if (right) {
+                var cur = list.filter(function (x) { return String(x.id) === String(window._selectedProxyGroup); })[0];
+                if (!cur) { right.innerHTML = '<div class="text-gray">点击左侧一组 IP</div>'; return; }
+                var ws = workersOfProxy(cur, workers);
+                var rh = '<div class="flex-between mb-10"><div><strong>' + cur.host + ':' + cur.port + '</strong></div>';
+                rh += '<div class="flex"><button class="btn btn-sm btn-primary" onclick="exportProxyWorkers(\'' + cur.id + '\')">导出</button> ';
+                rh += '<button class="btn btn-sm btn-danger" onclick="deleteProxy(\'' + cur.id + '\')">删除线路</button></div></div>';
+                rh += '<div class="text-gray mb-10">本组 ' + ws.length + '/10 水军</div>';
+                for (var j = 0; j < ws.length; j++) {
+                    rh += '<div class="card"><strong>' + ws[j].phone + '</strong></div>';
+                }
+                for (var k = ws.length; k < 10; k++) rh += '<div class="slot-empty">空位 ' + (k + 1) + '/10</div>';
+                right.innerHTML = rh;
+            }
+        }
+        function selectProxyGroup(id) {
+            window._selectedProxyGroup = id;
+            loadProxies();
+        }
+
+        async function loadBots() {
+            /* CONTIGUOUS_BOT_GROUPS */
+            (function(){
+                if (!Array.isArray(bots)) return;
+                bots.sort(function(a,b){
+                    var da=String(a.username||'').replace(/[^0-9]/g,'');
+                    var db=String(b.username||'').replace(/[^0-9]/g,'');
+                    return (parseInt(da||0,10))-(parseInt(db||0,10));
+                });
+                var G=30, n=bots.length, base=Math.floor(n/G), rem=n%G, idx=0;
+                for (var g=1;g<=G;g++){
+                    var sz=Math.min(10, base+(g<=rem?1:0));
+                    for (var k=0;k<sz && idx<n;k++,idx++){
+                        bots[idx].group_no=g;
+                        bots[idx].number=parseInt(String(bots[idx].username||'').replace(/[^0-9]/g,'')||'0',10);
+                    }
+                }
+            })();
+
+            var r = await fetch(API + '/api/bots');
+            var bots = await r.json();
+            bots.sort(function (a, b) {
+                var numA = parseInt((a.username || '').replace(/[^0-9]/g, '')) || 0;
+                var numB = parseInt((b.username || '').replace(/[^0-9]/g, '')) || 0;
+                return numA - numB;
+            });
+            window._allBots = bots;
+            var groups = [];
+            for (var g = 0; g < 30; g++) groups.push([]);
+            for (var i = 0; i < bots.length; i++) {
+                var gi = Math.min(19, (function(){var _n=bots.length,_g=20,_sz=Math.ceil(_n/_g)||1;return Math.floor(i/_sz);})());
+                if (groups[gi].length < 10) groups[gi].push(bots[i]);
+            }
+            var left = document.getElementById('bot-group-list');
+            if (left) {
+                var lh = '';
+                for (var i = 0; i < 30; i++) {
+                    var act = i === window._selectedBotGroup ? ' active' : '';
+                    lh += '<div class="group-item' + act + '" onclick="selectBotGroup(' + i + ')">';
+                    lh += '<div class="g-title">Bot组 ' + (i + 1) + '</div>';
+                    lh += '<div class="g-sub">' + groups[i].length + '/10 个账号</div></div>';
+                }
+                left.innerHTML = lh;
+            }
+            var view = groups[window._selectedBotGroup] || [];
+            var html = '';
+            for (var i = 0; i < view.length; i++) {
+                var b = view[i];
+                var tokenShort = (b.token || '').slice(0, 10) + '…';
+                var statusClass = b.restriction_status === 'platform_banned' ? 'badge-red' : 'badge-green';
+                var statusText = b.status || b.restriction_status || 'normal';
+                html += '<tr><td>' + (b.number || '') + '</td>';
+                html += '<td>' + (b.username ? ('@' + b.username) : '-') + '</td>';
+                html += '<td><code style="font-size:11px">' + tokenShort + '</code></td>';
+                html += '<td><span class="badge ' + statusClass + '">' + statusText + '</span></td>';
+                html += '<td><button class="btn btn-sm btn-primary" onclick="verifyBot(\'' + b.id + '\')">验证</button> ';
+                html += '<button class="btn btn-sm btn-danger" onclick="deleteBot(\'' + b.id + '\')">删除</button></td></tr>';
+            }
+            var tbody = document.getElementById('bots-list');
+            if (tbody) tbody.innerHTML = html || '<tr><td colspan="5">本组暂无Bot</td></tr>';
+            var st = document.getElementById('bot-stats');
+            if (st) st.innerHTML = '总计: ' + bots.length + ' 个Bot | 当前组: ' + view.length + '/10';
+        }
+        function selectBotGroup(i) {
+            window._selectedBotGroup = i;
+            loadBots();
+        }
+
+        
+        /* API_GROUP_ASSIGN_V1 */
+        window._selectedApiGroup = 'standby';
+
+        function paintApiGroupDetail(proxies, list, standby) {
+            var box = document.getElementById('api-group-detail');
+            if (!box) return;
+            if (window._selectedApiGroup === 'standby') {
+                var h = '<div class="mb-10"><strong>待配组池</strong> <span class="text-gray">未绑线路，线路 API 出问题从这里抽 1 条</span></div>';
+                if (!standby.length) h += '<div class="text-gray">暂无待配 API</div>';
+                standby.forEach(function (a) {
+                    h += '<div class="card"><strong>' + a.api_id + '</strong> <span class="text-gray">' + (a.note || '') + '</span> ';
+                    h += '<button class="btn btn-sm btn-danger" onclick="deleteApiConfig(\'' + (a.id || a.api_id) + '\')">删除</button></div>';
+                });
+                box.innerHTML = h;
+                return;
+            }
+            var i = parseInt(window._selectedApiGroup, 10);
+            var px = proxies[i];
+            if (!px) { box.innerHTML = '<div class="text-gray">该线路还不存在，先在 IP 池添加</div>'; return; }
+            var a = px.assigned_api || {};
+            var h = '<div class="mb-10"><strong>线路' + (i + 1) + ' ' + px.host + ':' + px.port + '</strong></div>';
+            if (a.api_id) {
+                h += '<div class="card"><div>已配 API：<strong>' + a.api_id + '</strong></div>';
+                h += '<div class="text-gray">hash ' + String(a.api_hash || '').slice(0, 8) + '…</div>';
+                h += '<button class="btn btn-sm btn-warning" onclick="replaceGroupApi(' + i + ')">此条有问题，从待配池换 1 条</button></div>';
+            } else {
+                h += '<div class="slot-empty">本组未配 API</div>';
+                h += '<button class="btn btn-sm btn-primary" onclick="replaceGroupApi(' + i + ')">从待配池配 1 条</button>';
+            }
+            box.innerHTML = h;
+        }
+        function selectApiGroup(g) {
+            window._selectedApiGroup = g;
+            loadApiConfigs();
+        }
+        async function autoAssignApis() {
+            var r = await fetch(API + '/api/api-configs/auto-assign', { method: 'POST' });
+            var d = await r.json();
+            alert(d.message || d.error || JSON.stringify(d));
+            loadApiConfigs();
+        }
+        async function replaceGroupApi(groupIndex) {
+            var r = await fetch(API + '/api/api-configs/replace-group', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ group: groupIndex })
+            });
+            var d = await r.json();
+            alert(d.message || d.error || '已处理');
+            loadApiConfigs();
+        }
+
+        
+        async function loadApiConfigs() {
+            var r = await fetch(API + '/api/api-configs');
+            var d = await r.json();
+            var list = d.configs || d.pool || [];
+            if (!Array.isArray(list)) list = [];
+            list.sort(function (a, b) {
+                return String(a.api_id || '').localeCompare(String(b.api_id || ''));
+            });
+            var groups = [];
+            for (var i = 0; i < 30; i++) groups[i] = [];
+            var standby = [];
+            list.forEach(function (x, i) {
+                if (x.group === 'standby') { standby.push(x); return; }
+                if (x.group !== undefined && x.group !== null && String(x.group) !== '') {
+                    var g = parseInt(x.group, 10);
+                    if (g >= 0 && g < 30) { groups[g].push(x); return; }
+                }
+                if (i < 30) groups[i].push(x);
+                else standby.push(x);
+            });
+            if (!window._selectedApiGroup && window._selectedApiGroup !== 0) window._selectedApiGroup = 0;
+            var left = document.getElementById('api-group-list');
+            var html = '';
+            for (var i = 0; i < 30; i++) {
+                var act = String(window._selectedApiGroup) === String(i) ? ' active' : '';
+                var item = groups[i][0];
+                html += '<div class="group-item' + act + '" onclick="selectApiGroup(' + i + ')">';
+                html += '<div class="g-title">API组 ' + (i + 1) + '</div>';
+                html += '<div class="g-sub">' + (item ? ('已配 ' + item.api_id) : '未配') + '</div></div>';
+            }
+            html += '<div class="group-item' + (window._selectedApiGroup === 'standby' ? ' active' : '') + '" onclick="selectApiGroup(\'standby\')">';
+            html += '<div class="g-title">待配组池</div><div class="g-sub">' + standby.length + ' 条备用</div></div>';
+            if (left) left.innerHTML = html;
+            var st = document.getElementById('api-assign-stats');
+            var used = 0;
+            for (var i = 0; i < 30; i++) if (groups[i].length) used++;
+            if (st) st.textContent = 'API总计 ' + list.length + ' | 已配组 ' + used + '/30 | 待配 ' + standby.length;
+            var box = document.getElementById('api-group-detail');
+            if (!box) return;
+            if (window._selectedApiGroup === 'standby') {
+                var h = '<div class="mb-10"><strong>待配组池</strong></div>';
+                standby.forEach(function (a) {
+                    h += '<div class="card"><strong>' + a.api_id + '</strong></div>';
+                });
+                box.innerHTML = h;
+                return;
+            }
+            var gi = parseInt(window._selectedApiGroup, 10) || 0;
+            var arr = groups[gi] || [];
+            var h = '<div class="mb-10"><strong>API组 ' + (gi + 1) + '</strong></div>';
+            arr.forEach(function (a) {
+                h += '<div class="card"><strong>' + a.api_id + '</strong></div>';
+            });
+            if (!arr.length) h += '<div class="slot-empty">未配</div>';
+            box.innerHTML = h;
+        }
+
+        </script>
+<div id="login-overlay" style="display:none; position:fixed; inset:0; background:rgba(8,15,25,.92); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:#1e2a38; padding:32px; border-radius:12px; width:320px; box-shadow:0 8px 40px rgba(0,0,0,.6);">
+        <h2 style="margin:0 0 20px; color:#4fc3f7; text-align:center; font-size:20px;">🔒 管理员登录</h2>
+        <input id="login-user" placeholder="用户名" value="admin" autocomplete="username"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:12px; border-radius:6px; border:1px solid #37474f; background:#263238; color:#fff; font-size:14px;">
+        <input id="login-pass" type="password" placeholder="密码" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()"
+            style="width:100%; box-sizing:border-box; padding:10px 12px; margin-bottom:12px; border-radius:6px; border:1px solid #37474f; background:#263238; color:#fff; font-size:14px;">
+        <div id="login-err" style="color:#ef5350; font-size:13px; min-height:18px; margin-bottom:12px;"></div>
+        <button onclick="doLogin()"
+            style="width:100%; padding:11px; border:none; border-radius:6px; background:#4fc3f7; color:#0d1b2a; font-weight:bold; font-size:15px; cursor:pointer;">登 录</button>
+    </div>
+</div>
+
+
+
+
+<script id="gfold-force">
+(function(){
+  function token(){ return localStorage.getItem("token")||localStorage.getItem("auth_token")||""; }
+  function hdr(){ return {"X-Auth-Token":token(),"Content-Type":"application/json"}; }
+  function api(){ return window.API||""; }
+  function lineSelect(){
+    var ids=["worker-line-select","worker-proxy-select","line-select","proxy-select","worker-ip-select","add-worker-line"];
+    for(var i=0;i<ids.length;i++){
+      var el=document.getElementById(ids[i]);
+      if(el) return el;
+    }
+    var form=document.getElementById("add-worker-form");
+    return form ? form.querySelector("select") : null;
+  }
+  async function fillLines(){
+    var sel=lineSelect();
+    if(!sel) return;
+    var r=await fetch(api()+"/api/proxies",{credentials:"include",headers:hdr()});
+    var d=await r.json().catch(function(){return {};});
+    var list=Array.isArray(d)?d:(d.proxies||[]);
+    var cur=sel.value;
+    sel.innerHTML='<option value="">-- 请先选择 IP 线路 --</option>';
+    list.forEach(function(p,i){
+      var n=i+1;
+      var host=p.host||p.ip||"";
+      var port=p.port||"";
+      var id=p.id||("");
+      var opt=document.createElement("option");
+      opt.value=id||String(n);
+      opt.textContent="线路 "+n+" · "+host+(port?(":"+port):"");
+      opt.setAttribute("data-group", String(n));
+      opt.setAttribute("data-host", host);
+      sel.appendChild(opt);
+    });
+    if(cur) sel.value=cur;
+    if(!sel.value && list.length) sel.selectedIndex=1;
+  }
+  var _show=window.showAddWorker;
+  window.showAddWorker=async function(){
+    var form=document.getElementById("add-worker-form");
+    if(form) form.style.display="block";
+    if(typeof _show==="function"){
+      try{ _show(); }catch(e){}
+    }
+    await fillLines();
+  };
+  window.hideAddWorker=function(){
+    var form=document.getElementById("add-worker-form");
+    if(form) form.style.display="none";
+  };
+  window.addWorker=async function(){
+    var phoneEl=document.getElementById("worker-phone");
+    var phone=phoneEl?phoneEl.value.trim():"";
+    if(!phone){ alert("请输入手机号"); return; }
+    var sel=lineSelect();
+    if(!sel || !sel.value){ alert("请先选择 IP 线路"); return; }
+    var opt=sel.options[sel.selectedIndex];
+    var group_no=parseInt(opt.getAttribute("data-group")||sel.selectedIndex||"1",10);
+    var body={
+      phone:phone,
+      group_no:group_no,
+      proxy_id:sel.value,
+      auto_bot:true
+    };
+    var r=await fetch(api()+"/api/workers/add",{
+      method:"POST", credentials:"include", headers:hdr(),
+      body:JSON.stringify(body)
+    });
+    var d={}; try{ d=await r.json(); }catch(e){}
+    if(!r.ok || d.ok===false){ alert("添加失败: "+(d.error||r.status)); return; }
+    hideAddWorker();
+    if(phoneEl) phoneEl.value="";
+    if(window.loadWorkers) try{ await loadWorkers(); }catch(e){}
+    alert("已添加 "+phone+" 到第 "+group_no+" 组");
+  };
+  document.addEventListener("click", function(e){
+    var t=(e.target.innerText||"").replace(/\s+/g,"");
+    if(t==="+添加水军" || t==="添加水军"){
+      setTimeout(fillLines, 50);
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
