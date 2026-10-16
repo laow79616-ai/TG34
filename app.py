@@ -249,8 +249,8 @@ def log_step(step, action, worker_phone="", target="", details=""):
     if details:
         msg += f" | {details}"
     logger.info(msg)
-    log_activity(f"步骤{step}: {action}", details, worker_phone, target, status="info")
-    current_activity = {"status": "运行中", "worker": worker_phone, "target": target, "step": f"步骤{step}: {action}"}
+    phone_short = worker_phone[-4:] if worker_phone else ""; display = f"步骤{step}: {action}"; display += f" [{phone_short}]" if phone_short else ""; display += f" → @{target}" if target else ""; log_activity(display, details, worker_phone, target, status="info")
+    current_activity = {"status": "运行中", "worker": worker_phone, "target": target, "step": display}
 
 def log_activity(action, details="", worker_phone="", target="", status="info"):
     """记录工作流活动"""
