@@ -124,7 +124,20 @@ _stall_alerted_after_restart = False
 _worker_low_notified_at = 0  # 水军不足上报时间戳，防刷
 reconnect_task = None  # 后台自动重连任务
 # 工作流活动日志
-activity_log = []  # 最近100条活动记录
+ACTIVITY_LOG_FILE = DATA_DIR / "activity_log.json"
+def _load_activity_log():
+    try:
+        if ACTIVITY_LOG_FILE.exists():
+            return json.loads(ACTIVITY_LOG_FILE.read_text(encoding="utf-8"))
+    except:
+        pass
+    return []
+def _save_activity_log():
+    try:
+        ACTIVITY_LOG_FILE.write_text(json.dumps(activity_log[-100:], ensure_ascii=False), encoding="utf-8")
+    except:
+        pass
+activity_log = _load_activity_log()  # 从文件加载
 current_activity = {}  # 当前正在进行的操作
 MAX_ACTIVITY_LOG = 100
 
@@ -284,6 +297,7 @@ def log_activity(action, details="", worker_phone="", target="", status="info"):
     if len(activity_log) > MAX_ACTIVITY_LOG:
         activity_log = activity_log[-MAX_ACTIVITY_LOG:]
 
+    _save_activity_log()
 connected_count = 0
 MAX_CONCURRENT_CONNECTIONS = 10
 def get_max_online():
