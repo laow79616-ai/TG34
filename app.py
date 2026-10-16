@@ -240,6 +240,7 @@ def _bj_now():
     return datetime.now(BJ_TZ)
 
 def log_step(step, action, worker_phone="", target="", details=""):
+    global current_activity
     msg = f"[步骤{step}] {action}"
     if worker_phone:
         msg += f" | 水军:{worker_phone}"
@@ -249,6 +250,7 @@ def log_step(step, action, worker_phone="", target="", details=""):
         msg += f" | {details}"
     logger.info(msg)
     log_activity(f"步骤{step}: {action}", details, worker_phone, target, status="info")
+    current_activity = {"status": "运行中", "worker": worker_phone, "target": target, "step": f"步骤{step}: {action}"}
 
 def log_activity(action, details="", worker_phone="", target="", status="info"):
     """记录工作流活动"""
