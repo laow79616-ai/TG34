@@ -735,7 +735,7 @@ async def api_worker_add(request):
     worker_list = data.get("workers", [])
     proxy_data = load_json(PROXY_POOL_FILE)
     proxies = proxy_data.get("proxies", proxy_data if isinstance(proxy_data, list) else [])
-    active_proxies = [p for p in proxies if p.get("status") != "disabled"][:20]
+    active_proxies = [p for p in proxies if p.get("status") != "disabled"]
     group_counts = {i: 0 for i in range(len(active_proxies))}
     for w in worker_list:
         g = w.get("group_no")
