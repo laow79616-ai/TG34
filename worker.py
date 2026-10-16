@@ -785,8 +785,12 @@ class ShareWorker:
 
         self.status = "working"
 
-        # Step 1: 搜索并确认目标用户
-        logger.info(f"[Worker-{self.worker_id}] 步骤2: 检查目标用户 @{target_username}")
+        # Step 1: 先给Bot发送/start
+        bot_name = self.bot_usernames[0] if self.bot_usernames else ""
+        if bot_name:
+            await self.send_start_and_wait(bot_name, timeout=8)
+        self._log_step(2, "给本组Bot发送/start")
+        # Step 2: 搜索目标用户
         self._log_step(4, "搜索指定用户", target_username)
         user, matched = await self.search_user(target_username)
 
@@ -798,7 +802,8 @@ class ShareWorker:
             self.status = "idle"
             return False, f"用户名不匹配"
 
-        # Step 2: 通过Bot分享广告
+        # Step 3: 发送
+        self._log_step(5, "确认用户并点击发送")
         success, msg, bot_restricted = await self.get_bot_ad_and_share(user, ad_index)
 
         if success:
