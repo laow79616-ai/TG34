@@ -2163,9 +2163,9 @@ async def _run_send_scheduler_inner():
                     await asyncio.sleep(3)
                     continue
                 else:
-                    logger.info(f"[调度] 发送失败({msg})，尝试换水军号...")
+                    logger.info(f"[调度] 发送失败({msg})，跳过此目标")
                     await asyncio.sleep(3)
-                    continue
+                    break
 
         # === Step 3: 更新目标状态 ===
         # 记录失败到restrictions（Too many requests等）
