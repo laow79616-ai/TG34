@@ -2121,7 +2121,7 @@ async def _run_send_scheduler_inner():
 
 
             global _last_attempt_ts
-            log_step(1, "按组轮询取限制最少水军", worker_phone=wconfig_send.get("phone"), target=target.get("username"))
+            log_activity("步骤1 选水军", f"取号 {wconfig_send.get("phone")} → @{target.get("username")}", worker_phone=wconfig_send.get("phone"), target=target.get("username")); log_step(1, "选水军", worker_phone=wconfig_send.get("phone"), target=target.get("username"))
             logger.info(f"[调度] 水军 {wconfig_send['phone']} → @{target['username']}（第{attempt+1}次）")
             try:
                 success, msg = await asyncio.wait_for(
@@ -2163,7 +2163,7 @@ async def _run_send_scheduler_inner():
                     await asyncio.sleep(3)
                     continue
                 else:
-                    logger.info(f"[调度] 发送失败({msg})，跳过此目标")
+                    log_activity("步骤5 失败", f"{msg}，跳过该用户", worker_phone=wconfig_send.get("phone"), target=target.get("username"), status="warning"); logger.info(f"[调度] 发送失败({msg})，跳过此目标")
                     await asyncio.sleep(3)
                     break
 
