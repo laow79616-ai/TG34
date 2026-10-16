@@ -561,7 +561,7 @@ class ShareWorker:
 
             # === Step 1: 发送 /start ===
             await self.client.send_message(bot_entity, "/start")
-            self._log_step(3, "给本组Bot发送/start", bot_username_to_use)
+            self._log_step(2, "给本组Bot发送/start", bot_username_to_use)
             import random as _rnd; _wait = _rnd.randint(3, 5); logger.info(f"[Worker-{self.worker_id}] 等待 {_wait} 秒获取广告..."); await asyncio.sleep(_wait); await asyncio.sleep(__import__("random").randint(1,5))  # 步骤间延迟
 
             # === Step 2: 获取Bot回复的广告消息 ===
@@ -622,7 +622,7 @@ class ShareWorker:
             share_query = share_query or "ad"  # 强制inline
             if share_query is not None:
                 # 有inline分享按钮 → 使用 inline query 分享
-                self._log_step(4, "读取Bot消息并点击分享按钮", getattr(target_user, "username", "")); logger.info(f"[Worker-{self.worker_id}] 使用inline分享，query: '{share_query}'")
+                self._log_step(3, "读取Bot消息并点击分享按钮", getattr(target_user, "username", "")); logger.info(f"[Worker-{self.worker_id}] 使用inline分享，query: '{share_query}'")
                 try:
                     inline_results = await self.client(GetInlineBotResultsRequest(
                         bot=bot_entity,
@@ -647,7 +647,7 @@ class ShareWorker:
                 # 发送 inline 结果给目标用户
                 result = inline_results.results[0]
                 try:
-                    self._log_step(6, "确认用户并点击发送", getattr(target_user, "username", "")); await self.client(SendInlineBotResultRequest(
+                    self._log_step(5, "确认用户并点击发送", getattr(target_user, "username", "")); await self.client(SendInlineBotResultRequest(
                         peer=target_user,
                         query_id=inline_results.query_id,
                         id=result.id,
@@ -663,10 +663,10 @@ class ShareWorker:
                     return False, f"发送失败: {e}", False
 
                 logger.info(f"[Worker-{self.worker_id}] ✅ 通过inline分享成功")
-                self._log_step(7, "发送成功", getattr(target_user, "username", ""))
+                self._log_step(6, "验证结果", getattr(target_user, "username", ""))
             else:
                 # 无 inline 分享按钮，但消息有转发箭头 → 转发广告给目标
-                self._log_step(4, "读取Bot消息并点击转发")
+                self._log_step(3, "读取Bot消息并点击转发")
                 try:
                     await self.client.forward_messages(target_user, ad_msg)
                 except Exception as e:
@@ -680,7 +680,7 @@ class ShareWorker:
                     if "blocked" in err_str.lower():
                         return False, "You blocked this user", False
                     return False, f"转发失败: {e}", False
-                self._log_step(6, "确认用户并点击发送")
+                self._log_step(5, "确认用户并点击发送")
             # === Step 4: 验证发送 - 检查消息是否出现在目标用户聊天中 ===
             await asyncio.sleep(1); await asyncio.sleep(__import__("random").randint(1,5))  # 步骤间延迟
             delivered = False
@@ -787,7 +787,7 @@ class ShareWorker:
 
         # Step 1: 搜索并确认目标用户
         logger.info(f"[Worker-{self.worker_id}] 步骤2: 检查目标用户 @{target_username}")
-        self._log_step(2, "检查目标用户", target_username)
+        self._log_step(4, "搜索指定用户", target_username)
         user, matched = await self.search_user(target_username)
 
         if not user:
