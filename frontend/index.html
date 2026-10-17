@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>飞机分析V2号机</title>
+    <title>飞机分析2号机</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1923; color: #e0e0e0; min-height: 100vh; }
@@ -75,7 +75,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>飞机分析V2号机<button onclick="logout()" style="float:right; font-size:13px; padding:6px 14px; border:1px solid #37474f; border-radius:6px; background:#263238; color:#90a4ae; cursor:pointer;">退出登录</button>
+        <h1>飞机分析2号机<button onclick="logout()" style="float:right; font-size:13px; padding:6px 14px; border:1px solid #37474f; border-radius:6px; background:#263238; color:#90a4ae; cursor:pointer;">退出登录</button>
         </h1>
 
         <div class="tabs">
@@ -177,7 +177,7 @@
             </div>
             <div id="add-worker-form" style="display:none" class="card mb-20">
                 <div class="form-group">
-                    <label>选择 IP 线路（必选，每组最多10个）</label>
+                    <label>选择 IP 线路（必选，每组最多15个）</label>
                     <select id="worker-proxy-select"><option value="">-- 请先选择 IP 线路 --</option></select>
                 </div>
                 <div class="form-group">
@@ -312,7 +312,7 @@
             </div>
             <div class="group-wrap">
                 <div class="group-left" id="proxy-group-list"></div>
-                <div class="group-right" id="proxy-group-detail"><div class="text-gray">点击左侧一组 IP 查看水军（每组最多10个）</div></div>
+                <div class="group-right" id="proxy-group-detail"><div class="text-gray">点击左侧一组 IP 查看水军（每组最多15个）</div></div>
             </div>
             <tbody id="proxies-list" style="display:none"></tbody>
         </div>
@@ -657,7 +657,7 @@ function translateError(err) {
             for (var i = 0; i < proxies.length; i++) {
                 var px = proxies[i];
                 var n = workersOfProxy(px).length;
-                opts += '<option value="' + px.id + '"' + (n >= 10 ? ' disabled' : '') + '>线路' + (i + 1) + ' ' + px.host + ':' + px.port + ' ' + n + '/10</option>';
+                opts += '<option value="' + px.id + '"' + (n >= 10 ? ' disabled' : '') + '>线路' + (i + 1) + ' ' + px.host + ':' + px.port + ' ' + n + '/15</option>';
             }
             sel.innerHTML = opts;
             if (window._selectedWorkerGroup) sel.value = window._selectedWorkerGroup;
@@ -1313,7 +1313,7 @@ function translateError(err) {
                 var arr=groups[g], cnt=arr.length;
                 var act = window._selectedBotGroup===g ? ' active' : '';
                 var range = cnt ? (botNum(arr[0]) + '-' + botNum(arr[cnt-1])) : '-';
-                left += '<div class="group-item'+act+'" onclick="selectBotGroup('+g+')"><div class="g-title">Bot组 '+g+'</div><div class="g-sub">'+cnt+'/10 · '+range+'</div></div>';
+                left += '<div class="group-item'+act+'" onclick="selectBotGroup('+g+')"><div class="g-title">Bot组 '+g+'</div><div class="g-sub">'+cnt+'/15 · '+range+'</div></div>';
             }
             var gl=document.getElementById('bot-group-list');
             if (gl) gl.innerHTML=left;
@@ -1686,7 +1686,7 @@ function translateError(err) {
         }
 
         /* GROUP_LOGIC_V1 */
-        window._MAX_PER_GROUP = 10;
+        window._MAX_PER_GROUP = 15;
         window._BOT_GROUP_COUNT = 20;
         window._selectedWorkerGroup = null;
         window._selectedProxyGroup = null;
@@ -1757,15 +1757,15 @@ function translateError(err) {
                 var act = String(p.id) === String(window._selectedWorkerGroup) ? ' active' : '';
                 leftHtml += '<div class="group-item' + act + '" onclick="selectWorkerGroup(\'' + p.id + '\')">';
                 leftHtml += '<div class="g-title">线路 ' + (i + 1) + ' · ' + p.host + ':' + p.port + '</div>';
-                leftHtml += '<div class="g-sub">' + n + '/10 水军 · ' + (p.type || '') + '</div></div>';
+                leftHtml += '<div class="g-sub">' + n + '/15 水军 · ' + (p.type || '') + '</div></div>';
             }
             box.innerHTML = leftHtml || '<div class="text-gray">请先在 IP代理池 添加线路</div>';
             var cur = list.filter(function (x) { return String(x.id) === String(window._selectedWorkerGroup); })[0];
             if (!cur) { right.innerHTML = '<div class="text-gray">请选择左侧 IP 线路</div>'; return; }
             var ws = workersOfProxy(cur);
-            var rh = '<div class="mb-10"><strong>' + cur.host + ':' + cur.port + '</strong> <span class="text-gray">' + ws.length + '/10</span></div>';
+            var rh = '<div class="mb-10"><strong>' + cur.host + ':' + cur.port + '</strong> <span class="text-gray">' + ws.length + '/15</span></div>';
             for (var j = 0; j < ws.length; j++) rh += renderWorkerCard(ws[j]);
-            for (var k = ws.length; k < 10; k++) rh += '<div class="slot-empty">空位 ' + (k + 1) + '/10</div>';
+            for (var k = ws.length; k < 10; k++) rh += '<div class="slot-empty">空位 ' + (k + 1) + '/15</div>';
             right.innerHTML = rh;
         }
         function selectWorkerGroup(id) {
@@ -1782,7 +1782,7 @@ function translateError(err) {
             for (var i = 0; i < proxies.length; i++) {
                 var p = proxies[i];
                 var n = workersOfProxy(p).length;
-                opts += '<option value="' + p.id + '"' + (n >= 10 ? ' disabled' : '') + '>线路' + (i + 1) + ' ' + p.host + ':' + p.port + ' ' + n + '/10</option>';
+                opts += '<option value="' + p.id + '"' + (n >= 10 ? ' disabled' : '') + '>线路' + (i + 1) + ' ' + p.host + ':' + p.port + ' ' + n + '/15</option>';
             }
             sel.innerHTML = opts;
             if (window._selectedWorkerGroup) sel.value = window._selectedWorkerGroup;
@@ -1869,7 +1869,7 @@ function translateError(err) {
                     var act = String(p.id) === String(window._selectedProxyGroup) ? ' active' : '';
                     lh += '<div class="group-item' + act + '" onclick="selectProxyGroup(\'' + p.id + '\')">';
                     lh += '<div class="g-title">线路 ' + (i + 1) + ' · ' + p.host + ':' + p.port + '</div>';
-                    lh += '<div class="g-sub">' + n + '/10 水军 · ' + (p.type || '') + '</div></div>';
+                    lh += '<div class="g-sub">' + n + '/15 水军 · ' + (p.type || '') + '</div></div>';
                 }
                 left.innerHTML = lh || '<div class="text-gray">暂无 IP</div>';
             }
@@ -1880,11 +1880,11 @@ function translateError(err) {
                 var rh = '<div class="flex-between mb-10"><div><strong>' + cur.host + ':' + cur.port + '</strong></div>';
                 rh += '<div class="flex"><button class="btn btn-sm btn-primary" onclick="exportProxyWorkers(\'' + cur.id + '\')">导出</button> ';
                 rh += '<button class="btn btn-sm btn-danger" onclick="deleteProxy(\'' + cur.id + '\')">删除线路</button></div></div>';
-                rh += '<div class="text-gray mb-10">本组 ' + ws.length + '/10 水军</div>';
+                rh += '<div class="text-gray mb-10">本组 ' + ws.length + '/15 水军</div>';
                 for (var j = 0; j < ws.length; j++) {
                     rh += '<div class="card"><strong>' + ws[j].phone + '</strong></div>';
                 }
-                for (var k = ws.length; k < 10; k++) rh += '<div class="slot-empty">空位 ' + (k + 1) + '/10</div>';
+                for (var k = ws.length; k < 10; k++) rh += '<div class="slot-empty">空位 ' + (k + 1) + '/15</div>';
                 right.innerHTML = rh;
             }
         }
@@ -1933,7 +1933,7 @@ function translateError(err) {
                     var act = i === window._selectedBotGroup ? ' active' : '';
                     lh += '<div class="group-item' + act + '" onclick="selectBotGroup(' + i + ')">';
                     lh += '<div class="g-title">Bot组 ' + (i + 1) + '</div>';
-                    lh += '<div class="g-sub">' + groups[i].length + '/10 个账号</div></div>';
+                    lh += '<div class="g-sub">' + groups[i].length + '/15 个账号</div></div>';
                 }
                 left.innerHTML = lh;
             }
@@ -1954,7 +1954,7 @@ function translateError(err) {
             var tbody = document.getElementById('bots-list');
             if (tbody) tbody.innerHTML = html || '<tr><td colspan="5">本组暂无Bot</td></tr>';
             var st = document.getElementById('bot-stats');
-            if (st) st.innerHTML = '总计: ' + bots.length + ' 个Bot | 当前组: ' + view.length + '/10';
+            if (st) st.innerHTML = '总计: ' + bots.length + ' 个Bot | 当前组: ' + view.length + '/15';
         }
         function selectBotGroup(i) {
             window._selectedBotGroup = i;

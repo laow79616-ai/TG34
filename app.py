@@ -1,4 +1,5 @@
 """
+IP_LINE_MAX_WORKERS = 15  # 每组最多水军数
 tg_share_v2 主程序 - 优化版
 功能：
 1. Bot 服务（处理 /start、预览、inline query）
@@ -76,19 +77,19 @@ logging.getLogger("telethon.network.mtprotosender").setLevel(logging.WARNING)
 workers = {}  # worker_id -> ShareWorker
 
 def _mark_rate_limit_10():
-    """启动时检查并标记限流≥10的水军"""
+    """启动时检查并标记限流≥6的水军"""
     try:
         data = load_json(WORKERS_CONFIG_FILE)
         workers = data.get("workers", [])
         marked = 0
         for w in workers:
-            if int(w.get("rate_limit_count") or 0) >= 10:
+            if int(w.get("rate_limit_count") or 0) >= 6:
                 w["is_restricted"] = True
                 w["restricted_reason"] = f"限流达到{w.get('rate_limit_count')}次，标记删除"
                 marked += 1
         if marked > 0:
             save_json(WORKERS_CONFIG_FILE, {"workers": workers})
-            logger.info(f"[启动检查] 标记了 {marked} 个限流≥10的水军")
+            logger.info(f"[启动检查] 标记了 {marked} 个限流≥6的水军")
     except Exception as e:
         logger.warning(f"[启动检查] 标记失败: {e}")
 
@@ -1216,13 +1217,13 @@ def save_restrictions(data):
 
 def auto_delete_dead_worker(worker_phone):
     """限制10次/冻结/死号：真正删除"""
-    logger.warning(f"[标记受限] 水军号 {worker_phone} 被限制达到10次，标记为受限（不删除）")
+    logger.warning(f"[标记受限] 水军号 {worker_phone} 被限制达到6次，标记为受限（不删除）")
     data = load_json(WORKERS_CONFIG_FILE)
     worker_list = data.get("workers", [])
     for w in worker_list:
         if w.get("phone") == worker_phone:
             w["is_restricted"] = True
-            w["restricted_reason"] = "平台限制达到10次"
+            w["restricted_reason"] = "平台限制达到6次"
             w["status"] = "restricted"
             break
     save_json(WORKERS_CONFIG_FILE, data)
@@ -1988,7 +1989,7 @@ async def _run_send_scheduler_inner():
                     continue
                 cd_until = float(wc.get("cooldown_until") or 0)
                 still_cooling = cd_until > time.time()
-                truly_blocked = bool(wc.get("is_restricted") or wc.get("is_dead") or wc.get("is_frozen") or int(wc.get("rate_limit_count") or 0) >= 10)
+                truly_blocked = bool(wc.get("is_restricted") or wc.get("is_dead") or wc.get("is_frozen") or int(wc.get("rate_limit_count") or 0) >= 6)
                 if truly_blocked or still_cooling:
                     continue
                 # 跳过ban了组内全部Bot的水军
@@ -2141,7 +2142,7 @@ async def _run_send_scheduler_inner():
         logger.info(f"[调度] 直接发送 @{target['username']}（跳过预验证）")
 
         # === Step 2: 目标可达，正式发送（最多尝试3个不同水军号）===
-        max_retry_workers = 1  # 标准: 同一目标最多2个水军
+        max_retry_workers = 2  # 限流可重试一次，最多2次
         tried_worker_ids = set()
         tried_worker_ids.add(test_wconfig["id"])  # 测试用的水军号也可以用来发送
         tried_worker_ids.discard(test_wconfig["id"])  # 先不排除测试号，让它也参与发送
@@ -2186,7 +2187,7 @@ async def _run_send_scheduler_inner():
                 # 判断失败是否可重试
                 is_rate_limit = ("too many" in msg.lower() or "flood" in msg.lower()
                                 or "冷却" in msg.lower() or "cooldown" in msg.lower())
-                is_target_issue = ("不存在" in msg or "不匹配" in msg or "blocked" in msg.lower()
+                is_target_issue = ("不匹配" in msg or "blocked" in msg.lower()
                                   or "隐私" in msg or "privacy" in msg.lower()
                                   or "forbidden" in msg.lower() or "无法向该用户" in msg)
                 if is_target_issue:
@@ -2383,7 +2384,7 @@ async def stop_bot():
 
 
 async def hourly_purge_frozen():
-    """每小时扫描内存+配置，强制删除冻结/死号/限流达到10次的号，不进冷却"""
+    """每小时扫描内存+配置，强制删除冻结/死号/限流达到6次的号，不进冷却"""
     while True:
         try:
             await asyncio.sleep(3600)
@@ -2393,14 +2394,14 @@ async def hourly_purge_frozen():
                 rr = str(getattr(w, "restricted_reason", "") or "")
                 blob = (le + " " + rr).lower()
                 rate_count = getattr(w, "rate_limit_count", 0) or 0
-                if getattr(w, "is_frozen", False) or getattr(w, "is_dead", False) or getattr(w, "is_restricted", False) or "frozen" in blob or "冻结" in le or "方法不可用" in le or rate_count >= 10 or "限制达到10次" in rr:
+                if getattr(w, "is_frozen", False) or getattr(w, "is_dead", False) or getattr(w, "is_restricted", False) or "frozen" in blob or "冻结" in le or "方法不可用" in le or rate_count >= 10 or "限制达到6次" in rr:
                     phones.add(getattr(w, "phone", ""))
             data = load_json(WORKERS_CONFIG_FILE)
             for wc in data.get("workers", []):
                 le = str(wc.get("last_error") or "")
                 rr = str(wc.get("restricted_reason") or "")
                 rate_count = wc.get("rate_limit_count", 0) or 0
-                if wc.get("is_frozen") or wc.get("is_dead") or wc.get("is_restricted") or "frozen" in le.lower() or "冻结" in le or "冻结" in rr or rate_count >= 10 or "限制达到10次" in rr:
+                if wc.get("is_frozen") or wc.get("is_dead") or wc.get("is_restricted") or "frozen" in le.lower() or "冻结" in le or "冻结" in rr or rate_count >= 10 or "限制达到6次" in rr:
                     phones.add(wc.get("phone"))
             phones.discard("")
             phones.discard(None)

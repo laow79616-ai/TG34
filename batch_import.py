@@ -255,18 +255,26 @@ async def api_auto_assign_apis(request):
         unbound = [w for w in workers if not w.get("proxy_id") and not w.get("bound_proxy_id")]
         if unbound and proxies:
             active_proxies = [px for px in proxies if px.get("status", "active") != "disabled"][:30]
-            for i, w in enumerate(unbound):
+            # 统计每组已有水军数
+            group_counts = {}
+            for i, px in enumerate(active_proxies):
+                group_counts[i] = len(px.get("assigned_bots") or [])
+            for w in unbound:
                 if not active_proxies:
                     break
-                px = active_proxies[i % len(active_proxies)]
+                # 找最少的组
+                min_idx = min(group_counts, key=group_counts.get)
+                if group_counts[min_idx] >= IP_LINE_MAX_WORKERS:
+                    break
+                px = active_proxies[min_idx]
                 assigned = list(px.get("assigned_bots") or [])
-                if len(assigned) >= IP_LINE_MAX_WORKERS:
-                    continue
                 assigned.append(w["id"])
                 px["assigned_bots"] = assigned
                 w["proxy_id"] = px.get("id")
                 w["bound_proxy_id"] = px.get("id")
-                w["group_no"] = (i % len(active_proxies)) + 1
+                w["group_no"] = min_idx + 1
+                w["proxy"] = {"type": px.get("type", "http"), "host": px.get("host"), "port": px.get("port"), "username": px.get("username", ""), "password": px.get("password", "")}
+                group_counts[min_idx] += 1
             proxy_pool.save()
             save_json(workers_file, workers_data)
     except Exception as e:

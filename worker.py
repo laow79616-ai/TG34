@@ -46,8 +46,8 @@ logger = logging.getLogger("Worker")
 MAX_RECONNECT_ATTEMPTS = 3
 RECONNECT_DELAY = 5
 # 递增等待策略: 第1次20分钟, 第2次1小时, 第3次2小时, 第4次永久标记
-PROGRESSIVE_WAIT = {1: 6*3600, 2: 12*3600, 3: 24*3600, 4: 24*3600, 5: 24*3600}
-MAX_FAILURES = 10  # 第10次直接标记删除
+PROGRESSIVE_WAIT = {1: 5*60, 2: 10*60, 3: 60*60, 4: 180*60, 5: 360*60}
+MAX_FAILURES = 6  # 第6次直接标记删除
 
 
 class ShareWorker:
@@ -675,7 +675,7 @@ class ShareWorker:
                     if "banned" in err_str.lower() or "restricted" in err_str.lower():
                         self._log_step(6, "发送失败: 转发限制"); return False, f"转发被限制: {e}", False
                     if "too many" in err_str.lower() or "flood" in err_str.lower():
-                        self.mark_rate_limit_and_check_delete()
+                        # self.mark_rate_limit_and_check_delete()  # 已由enter_cooldown处理
                         logger.warning(f"[Worker-{self.worker_id}] 转发频率限制: {e}")
                         self.enter_cooldown(3600)
                         self._log_step(6, "发送失败: 频率限制"); return False, "转发失败: 请求过多", False
@@ -884,10 +884,10 @@ class ShareWorker:
 
     def mark_rate_limit_and_check_delete(self):
         self.rate_limit_count = getattr(self, "rate_limit_count", 0) + 1
-        if self.rate_limit_count >= 10:
+        if self.rate_limit_count >= 6:
             self.is_dead = True
-            self.restricted_reason = "限制满10次自动删除"
-            logger.warning(f"[Worker-{self.worker_id}] 限制满10次，自动删除")
+            self.restricted_reason = "限制满6次自动删除"
+            logger.warning(f"[Worker-{self.worker_id}] 限制满6次，自动删除")
             return True
         return False
 
